@@ -1,0 +1,60 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" # Puerto AMQP (para las aplicaciones)
+      - "15672:15672" # Interfaz de administración web
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq # Persistencia de datos
+      - rabbitmq_logs:/var/log/rabbitmq # Logs persistentes (opcional)
+    networks:
+      - microservices_net
+
+  postgres_db:
+    container_name: postgres_ecommerce
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=ecommerce_pass
+      - POSTGRES_DB=ecommerce_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # - ./init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
+    networks:
+      - microservices_net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin -d ecommerce_dev" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  nats:
+    image: nats:2.12-alpine
+    container_name: nats
+    ports:
+      - "4222:4222" # client connections
+      - "8222:8222" # HTTP monitoring
+      - "6222:6222" # cluster routing (opcional)
+    command: >
+      -js -m 8222 -n nats-server
+    volumes:
+      - nats_data:/data
+    networks:
+      - microservices_net
+    restart: unless-stopped
+
+networks:
+  microservices_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  rabbitmq_logs:
+  nats_data:
