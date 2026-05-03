@@ -38,6 +38,7 @@ async function bootstrap() {
     .addTag('Orders')
     .addTag('Inventory')
     .addTag('Payments')
+    .addTag('Products')
     .build();
 
   const documentFactory = () =>
