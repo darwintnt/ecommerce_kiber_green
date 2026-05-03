@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { InventoryServiceController } from './inventory-service.controller';
-import { InventoryServiceService } from './inventory-service.service';
+import { InventoryService } from './inventory-service.service';
 
 describe('InventoryServiceController', () => {
   let inventoryServiceController: InventoryServiceController;
@@ -8,7 +8,7 @@ describe('InventoryServiceController', () => {
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
       controllers: [InventoryServiceController],
-      providers: [InventoryServiceService],
+      providers: [InventoryService],
     }).compile();
 
     inventoryServiceController = app.get<InventoryServiceController>(

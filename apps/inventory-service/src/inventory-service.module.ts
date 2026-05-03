@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { InventoryServiceController } from './inventory-service.controller';
-import { InventoryServiceService } from './inventory-service.service';
+import { InventoryService } from './inventory-service.service';
 import { ConfigModule } from '@nestjs/config';
 import { configuration } from './config/envs';
 import { PrismaService } from './prisma.service';
-import { INVENTORY_REPOSITORY } from './interfaces/inventory.repository.interface';
 import { InventoryRepository } from './inventory-service.repository';
+import { INVENTORY_REPOSITORY, INVENTORY_SERVICE } from './interfaces';
 
 @Module({
   imports: [
@@ -16,7 +16,10 @@ import { InventoryRepository } from './inventory-service.repository';
   ],
   controllers: [InventoryServiceController],
   providers: [
-    InventoryServiceService,
+    {
+      provide: INVENTORY_SERVICE,
+      useClass: InventoryService,
+    },
     {
       provide: INVENTORY_REPOSITORY,
       useClass: InventoryRepository,

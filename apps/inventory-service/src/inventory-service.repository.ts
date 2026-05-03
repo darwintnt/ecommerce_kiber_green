@@ -1,9 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import {
-  InventoryItem,
-  InventoryRepositoryI,
-} from './interfaces/inventory.repository.interface';
+import { InventoryItem, InventoryRepositoryI } from './interfaces';
 import { Prisma } from '../generated/prisma/client';
 import { ReservationStatus } from './enums/reservation-status';
 
