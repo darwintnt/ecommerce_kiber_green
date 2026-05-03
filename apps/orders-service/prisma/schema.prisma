@@ -1,0 +1,38 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  PENDING
+  RESERVED
+  PAID
+  COMPLETED
+  CANCELLED
+}
+
+model Order {
+  id                     String      @id @default(uuid())
+  customerId             String
+  items                  Json
+  total                  Decimal     @db.Decimal(10, 2)
+  status                 OrderStatus @default(PENDING)
+  inventoryReservationId String?     @unique
+  paymentTransactionId   String?
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+  @@map("orders")
+}

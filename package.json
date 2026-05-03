@@ -1,8 +1,8 @@
 {
   "name": "api-gateway",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "description": "Distributed order processing system built with NestJS, implementing CQRS + Saga pattern for managing complex order workflows across multiple services.",
+  "author": "Darwin Gomez",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
     "@nestjs/cqrs": "^11.0.3",
     "@nestjs/microservices": "^11.1.19",
