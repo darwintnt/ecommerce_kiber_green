@@ -44,4 +44,5 @@ model IdempotencyKey {
   expiresAt DateTime
 
   @@index([key])
+  @@map("idempotency_key")
 }
