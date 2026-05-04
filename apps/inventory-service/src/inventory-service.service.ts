@@ -3,11 +3,10 @@ import {
   INVENTORY_REPOSITORY,
   InventoryItem,
   InventoryServiceI,
-  ReserveResult,
-  ValidateStockResult,
+  ReserveData,
+  ValidateStockData,
   type InventoryRepositoryI,
 } from './interfaces';
-import { RpcException } from '@nestjs/microservices';
 import { ApiResponse } from 'libs/interfaces/api-response.interface';
 
 @Injectable()
@@ -19,155 +18,160 @@ export class InventoryService implements InventoryServiceI {
 
   async validateStock(
     items: InventoryItem[],
-  ): Promise<ApiResponse<ValidateStockResult>> {
-    const unavailableItems: ValidateStockResult['unavailableItems'] = [];
+  ): Promise<ApiResponse<ValidateStockData>> {
+    const unavailableItems: ValidateStockData['unavailableItems'] = [];
 
-    for (const item of items) {
-      // Find product by sku (productId is used as sku in this context)
-      const product = await this.inventoryRepository.findProductBySku(
-        item.productId,
-      );
+    try {
+      for (const item of items) {
+        const product = await this.inventoryRepository.findProductBySku(
+          item.productId,
+        );
 
-      if (!product) {
-        unavailableItems.push({
-          productId: item.productId,
-          requestedQuantity: item.quantity,
-          availableQuantity: 0,
-        });
-        continue;
+        if (!product) {
+          unavailableItems.push({
+            productId: item.productId,
+            requestedQuantity: item.quantity,
+            availableQuantity: 0,
+          });
+          continue;
+        }
+
+        const availableQuantity = product.stock - product.reserved;
+
+        if (availableQuantity < item.quantity) {
+          unavailableItems.push({
+            productId: item.productId,
+            requestedQuantity: item.quantity,
+            availableQuantity,
+          });
+        }
       }
-
-      // Business rule: available = stock - reserved
-      const availableQuantity = product.stock - product.reserved;
-
-      if (availableQuantity < item.quantity) {
-        unavailableItems.push({
-          productId: item.productId,
-          requestedQuantity: item.quantity,
-          availableQuantity,
-        });
-      }
+      return {
+        success: unavailableItems.length === 0,
+        data: { valid: unavailableItems.length === 0, unavailableItems },
+      };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
     }
-
-    return {
-      valid: unavailableItems.length === 0,
-      unavailableItems,
-    };
   }
 
   async reserve(
     orderId: string,
     items: InventoryItem[],
-  ): Promise<ReserveResult> {
-    // Validate stock first
-    const validation = await this.validateStock(items);
-    if (!validation.valid) {
-      return {
-        reserved: false,
-        reason: `Insufficient stock for items: ${validation.unavailableItems.map((i) => i.productId).join(', ')}`,
-      };
-    }
-
-    // Create reservation
-    const reservation = await this.inventoryRepository.createReservation(
-      orderId,
-      items,
-    );
-
-    // Update stock: increase reserved for each item
-    for (const item of items) {
-      const product = await this.inventoryRepository.findProductBySku(
-        item.productId,
-      );
-      if (product) {
-        await this.inventoryRepository.updateStock(
-          product.id,
-          0,
-          item.quantity,
-        );
+  ): Promise<ApiResponse<ReserveData>> {
+    try {
+      const validation = await this.validateStock(items);
+      if (!validation.data?.valid) {
+        const unavailableProductIds =
+          validation.data?.unavailableItems.map((i) => i.productId).join(', ') ?? '';
+        return {
+          success: false,
+          error: `Insufficient stock for items: ${unavailableProductIds}`,
+        };
       }
-    }
 
-    return {
-      reserved: true,
-      reservationId: reservation.id,
-    };
-  }
-
-  async confirm(reservationId: string): Promise<void> {
-    const reservation =
-      await this.inventoryRepository.findReservationById(reservationId);
-
-    if (!reservation) {
-      throw new RpcException('Reservation not found');
-    }
-
-    // Update reservation status to CONFIRMED
-    await this.inventoryRepository.updateReservationStatus(
-      reservationId,
-      'CONFIRMED',
-    );
-
-    // Move stock from reserved to sold (decrease both stock and reserved)
-    const items = reservation.items;
-    for (const item of items) {
-      const product = await this.inventoryRepository.findProductBySku(
-        item.productId,
+      const reservation = await this.inventoryRepository.createReservation(
+        orderId,
+        items,
       );
-      if (product) {
-        // On confirm: stock decreases (sold), reserved decreases
-        await this.inventoryRepository.updateStock(
-          product.id,
-          -item.quantity,
-          -item.quantity,
-        );
-      }
-    }
 
-    return {
-      
+      for (const item of items) {
+        const product = await this.inventoryRepository.findProductBySku(
+          item.productId,
+        );
+        if (product) {
+          await this.inventoryRepository.updateStock(
+            product.id,
+            0,
+            item.quantity,
+          );
+        }
+      }
+
+      return { success: true, data: { reservationId: reservation.id } };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
     }
   }
 
-  async release(reservationId: string): Promise<void> {
-    const reservation =
-      await this.inventoryRepository.findReservationById(reservationId);
+  async confirm(reservationId: string): Promise<ApiResponse<void>> {
+    try {
+      const reservation =
+        await this.inventoryRepository.findReservationById(reservationId);
 
-    if (!reservation) {
-      throw new RpcException('Reservation not found');
-    }
-
-    // Release reserved stock (restore reserved to normal stock)
-    const items = reservation.items;
-
-    console.log(items);
-
-    for (const item of items) {
-      const product = await this.inventoryRepository.findProductBySku(
-        item.productId,
-      );
-      if (product) {
-        // On release: reserved decreases (stock goes back to available)
-        await this.inventoryRepository.updateStock(
-          product.id,
-          0,
-          -item.quantity,
-        );
+      if (!reservation) {
+        return { success: false, error: 'Reservation not found' };
       }
-    }
 
-    // Update reservation status to RELEASED
-    await this.inventoryRepository.releaseReservation(reservationId);
+      await this.inventoryRepository.updateReservationStatus(
+        reservationId,
+        'CONFIRMED',
+      );
+
+      const items = reservation.items;
+      for (const item of items) {
+        const product = await this.inventoryRepository.findProductBySku(
+          item.productId,
+        );
+        if (product) {
+          await this.inventoryRepository.updateStock(
+            product.id,
+            -item.quantity,
+            -item.quantity,
+          );
+        }
+      }
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   }
 
-  async releaseByOrderId(orderId: string): Promise<void> {
-    const reservation =
-      await this.inventoryRepository.findReservationByOrderId(orderId);
+  async release(reservationId: string): Promise<ApiResponse<void>> {
+    try {
+      const reservation =
+        await this.inventoryRepository.findReservationById(reservationId);
 
-    if (!reservation) {
-      throw new RpcException('Reservation not found for order');
+      if (!reservation) {
+        return { success: false, error: 'Reservation not found' };
+      }
+
+      const items = reservation.items;
+
+      console.log(items);
+
+      for (const item of items) {
+        const product = await this.inventoryRepository.findProductBySku(
+          item.productId,
+        );
+        if (product) {
+          await this.inventoryRepository.updateStock(
+            product.id,
+            0,
+            -item.quantity,
+          );
+        }
+      }
+
+      await this.inventoryRepository.releaseReservation(reservationId);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
     }
+  }
 
-    await this.release(reservation.id);
+  async releaseByOrderId(orderId: string): Promise<ApiResponse<void>> {
+    try {
+      const reservation =
+        await this.inventoryRepository.findReservationByOrderId(orderId);
+
+      if (!reservation) {
+        return { success: false, error: 'Reservation not found for order' };
+      }
+
+      return await this.release(reservation.id);
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   }
 }

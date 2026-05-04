@@ -1,12 +1,13 @@
 export * from './inventory-repository.interface';
 export * from './inventory-service.interface';
+export type { ApiResponse } from 'libs/interfaces/api-response.interface';
 
 export interface InventoryItem {
   productId: string;
   quantity: number;
 }
 
-export interface ValidateStockResult {
+export interface ValidateStockData {
   valid: boolean;
   unavailableItems: {
     productId: string;
@@ -15,8 +16,6 @@ export interface ValidateStockResult {
   }[];
 }
 
-export interface ReserveResult {
-  reserved: boolean;
-  reservationId?: string;
-  reason?: string;
+export interface ReserveData {
+  reservationId: string;
 }

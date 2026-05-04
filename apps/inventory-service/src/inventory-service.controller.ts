@@ -4,13 +4,15 @@ import {
   type ConfirmInventoryRequestDto,
   type ReleaseInventoryRequestDto,
   type ReserveInventoryRequestDto,
-  type ReserveInventoryResponseDto,
   type ValidateInventoryRequestDto,
-  type ValidateInventoryResponseDto,
 } from './dtos';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { ApiTags } from '@nestjs/swagger';
-import { INVENTORY_SERVICE, type InventoryServiceI } from './interfaces';
+import {
+  ApiResponse,
+  INVENTORY_SERVICE,
+  type InventoryServiceI,
+} from './interfaces';
 
 @ApiTags('Inventory')
 @Controller()
@@ -25,61 +27,33 @@ export class InventoryServiceController {
   @EventPattern(TOPICS.INVENTORY_VALIDATE)
   async handleValidate(
     @Payload() data: ValidateInventoryRequestDto,
-  ): Promise<ValidateInventoryResponseDto> {
-    const result = await this.inventoryService.validateStock(data.items);
-
-    return {
-      valid: result.valid,
-      orderId: data.orderId,
-      unavailableItems:
-        result.unavailableItems.length > 0
-          ? result.unavailableItems
-          : undefined,
-    };
+  ): Promise<ApiResponse<any>> {
+    return await this.inventoryService.validateStock(data.items);
   }
 
   @EventPattern(TOPICS.INVENTORY_RESERVE)
   async handleReserve(
     @Payload() data: ReserveInventoryRequestDto,
-  ): Promise<ReserveInventoryResponseDto> {
-    const result = await this.inventoryService.reserve(
-      data.orderId,
-      data.items,
-    );
-
-    return {
-      reserved: result.reserved,
-      orderId: data.orderId,
-      reservationId: result.reservationId,
-      reason: result.reason,
-    };
+  ): Promise<ApiResponse<any>> {
+    return await this.inventoryService.reserve(data.orderId, data.items);
   }
 
   @EventPattern(TOPICS.INVENTORY_RELEASE)
   async handleRelease(
     @Payload() data: ReleaseInventoryRequestDto,
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      if (data.reservationId) {
-        await this.inventoryService.release(data.reservationId);
-      } else if (data.orderId) {
-        await this.inventoryService.releaseByOrderId(data.orderId);
-      }
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: (error as Error).message };
+  ): Promise<ApiResponse<void>> {
+    if (data.reservationId) {
+      return await this.inventoryService.release(data.reservationId);
+    } else if (data.orderId) {
+      return await this.inventoryService.releaseByOrderId(data.orderId);
     }
+    return { success: false, error: 'Either reservationId or orderId is required' };
   }
 
   @EventPattern(TOPICS.INVENTORY_CONFIRM)
   async handleConfirm(
     @Payload() data: ConfirmInventoryRequestDto,
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      await this.inventoryService.confirm(data.reservationId);
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: (error as Error).message };
-    }
+  ): Promise<ApiResponse<void>> {
+    return await this.inventoryService.confirm(data.reservationId);
   }
 }

@@ -1,14 +1,14 @@
 import { ApiResponse } from 'libs/interfaces/api-response.interface';
-import { InventoryItem, ReserveResult, ValidateStockResult } from '.';
+import { InventoryItem, ReserveData, ValidateStockData } from '.';
 
 export interface InventoryServiceI {
   validateStock(
     items: InventoryItem[],
-  ): Promise<ApiResponse<ValidateStockResult>>;
+  ): Promise<ApiResponse<ValidateStockData>>;
   reserve(
     orderId: string,
     items: InventoryItem[],
-  ): Promise<ApiResponse<ReserveResult>>;
+  ): Promise<ApiResponse<ReserveData>>;
   confirm(reservationId: string): Promise<ApiResponse<void>>;
   release(reservationId: string): Promise<ApiResponse<void>>;
   releaseByOrderId(orderId: string): Promise<ApiResponse<void>>;

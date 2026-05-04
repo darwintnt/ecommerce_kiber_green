@@ -29,8 +29,8 @@ export class InventoryReserveStep implements SagaStep {
       }),
     );
 
-    if (response.reserved) {
-      context.order.reservationId = response.reservationId;
+    if (response.success && response.data?.reservationId) {
+      context.order.reservationId = response.data.reservationId;
       return Promise.resolve(true);
     }
 
