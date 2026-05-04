@@ -28,8 +28,8 @@ export class PaymentProcessStep implements SagaStep {
       }),
     );
 
-    if (response.success && response.transactionId) {
-      context.order.transactionId = response.transactionId;
+    if (response.success && response.data?.transactionId) {
+      context.order.transactionId = response.data.transactionId;
       return Promise.resolve(true);
     }
 
@@ -52,9 +52,9 @@ export class PaymentProcessStep implements SagaStep {
       }),
     );
 
-    if (response.success) {
+    if (response.success && response.data?.transactionId) {
       this.logger.log(
-        `[Compensate]: Payment compensate complete: ${order.transactionId}`,
+        `[Compensate]: Payment compensate complete: ${response.data.transactionId}`,
       );
       return;
     }

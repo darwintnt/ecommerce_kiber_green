@@ -47,7 +47,10 @@ export class InventoryServiceController {
     } else if (data.orderId) {
       return await this.inventoryService.releaseByOrderId(data.orderId);
     }
-    return { success: false, error: 'Either reservationId or orderId is required' };
+    return {
+      success: false,
+      error: 'Either reservationId or orderId is required',
+    };
   }
 
   @EventPattern(TOPICS.INVENTORY_CONFIRM)

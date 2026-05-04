@@ -3,9 +3,9 @@ import {
   PaymentServiceI,
   PaymentStatus,
   ProcessPaymentDto,
-  ProcessPaymentResult,
   RefundDto,
-  RefundResult,
+  ProcessPaymentData,
+  RefundData,
 } from './interfaces/payments-service.interface';
 import {
   PAYMENT_REPOSITORY,
@@ -15,6 +15,7 @@ import {
   IDEMPOTENCY_REPOSITORY,
   type IdempotencyRepositoryI,
 } from './interfaces/idempotency-repository.interface';
+import { ApiResponse } from 'libs/interfaces/api-response.interface';
 
 @Injectable()
 export class PaymentsService implements PaymentServiceI {
@@ -27,7 +28,9 @@ export class PaymentsService implements PaymentServiceI {
     private readonly idempotencyRepository: IdempotencyRepositoryI,
   ) {}
 
-  async processPayment(dto: ProcessPaymentDto): Promise<ProcessPaymentResult> {
+  async processPayment(
+    dto: ProcessPaymentDto,
+  ): Promise<ApiResponse<ProcessPaymentData>> {
     // Check idempotency key first
     const existingKey = await this.idempotencyRepository.findByKey(
       dto.idempotencyKey,
@@ -36,7 +39,7 @@ export class PaymentsService implements PaymentServiceI {
       this.logger.log(
         `Returning cached response for idempotency key: ${dto.idempotencyKey}`,
       );
-      return existingKey.response as ProcessPaymentResult;
+      return existingKey.response as ApiResponse<ProcessPaymentData>;
     }
 
     // Create payment in PENDING status
@@ -58,9 +61,9 @@ export class PaymentsService implements PaymentServiceI {
       // Update payment with transaction ID and APPROVED status
       await this.paymentRepository.setTransactionId(payment.id, txnId);
 
-      const response: ProcessPaymentResult = {
+      const response: ApiResponse<ProcessPaymentData> = {
         success: true,
-        transactionId: txnId,
+        data: { transactionId: txnId },
       };
 
       // Store response in idempotency key (expires in 24 hours)
@@ -78,7 +81,7 @@ export class PaymentsService implements PaymentServiceI {
         PaymentStatus.DECLINED,
       );
 
-      const response: ProcessPaymentResult = {
+      const response: ApiResponse<ProcessPaymentData> = {
         success: false,
         error: 'Payment declined - invalid amount',
       };
@@ -94,7 +97,7 @@ export class PaymentsService implements PaymentServiceI {
     }
   }
 
-  async refund(dto: RefundDto): Promise<RefundResult> {
+  async refund(dto: RefundDto): Promise<ApiResponse<RefundData>> {
     // Find payment by transaction ID
     const payment = await this.paymentRepository.findByTransactionId(
       dto.transactionId,
@@ -114,8 +117,10 @@ export class PaymentsService implements PaymentServiceI {
 
     return {
       success: true,
-      transactionId: dto.transactionId,
-      refundedAmount: Number(payment.amount),
+      data: {
+        transactionId: dto.transactionId,
+        refundedAmount: Number(payment.amount),
+      },
     };
   }
 }

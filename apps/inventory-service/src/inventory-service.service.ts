@@ -63,7 +63,9 @@ export class InventoryService implements InventoryServiceI {
       const validation = await this.validateStock(items);
       if (!validation.data?.valid) {
         const unavailableProductIds =
-          validation.data?.unavailableItems.map((i) => i.productId).join(', ') ?? '';
+          validation.data?.unavailableItems
+            .map((i) => i.productId)
+            .join(', ') ?? '';
         return {
           success: false,
           error: `Insufficient stock for items: ${unavailableProductIds}`,
