@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { OrdersController } from './orders.controller';
-import { ORDER_QUEUE, ORDER_SERVICE } from '../constants';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ORDER_CLIENT_PROXY, ORDER_QUEUE } from 'libs/constants';
 
 @Module({
   imports: [
     ClientsModule.register([
       {
-        name: ORDER_SERVICE,
+        name: ORDER_CLIENT_PROXY,
         transport: Transport.NATS,
         options: {
           servers: ['nats://localhost:4222'],

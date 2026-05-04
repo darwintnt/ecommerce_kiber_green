@@ -1,12 +1,35 @@
-import { Controller, Get } from '@nestjs/common';
-import { OrdersServiceService } from './orders-service.service';
+import { Controller, Inject } from '@nestjs/common';
+import { TOPICS } from 'libs/constants/topics';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import {
+  ORDER_SERVICE,
+  type OrdersServiceI,
+} from './interfaces/orders-service.interface';
+import { type ProxyContextI } from 'libs/interfaces/proxy-context.interface';
 
 @Controller()
 export class OrdersServiceController {
-  constructor(private readonly ordersServiceService: OrdersServiceService) {}
+  constructor(
+    @Inject(ORDER_SERVICE) private readonly ordersService: OrdersServiceI,
+  ) {}
 
-  @Get()
-  getHello(): string {
-    return this.ordersServiceService.getHello();
+  @MessagePattern(TOPICS.ORDERS_GET_ALL)
+  async findAllOrders(@Payload() query: ProxyContextI): Promise<any> {
+    return this.ordersService.findAllOrders(query);
+  }
+
+  @MessagePattern(TOPICS.ORDERS_GET)
+  async findOneOrder(@Payload() query: ProxyContextI): Promise<any> {
+    return this.ordersService.findOneOrder(query);
+  }
+
+  @MessagePattern(TOPICS.ORDERS_CREATE)
+  async createOrder(@Payload() query: ProxyContextI): Promise<any> {
+    return this.ordersService.createOrder(query);
+  }
+
+  @MessagePattern(TOPICS.ORDERS_CANCEL)
+  async cancelOrder(@Payload() query: ProxyContextI): Promise<any> {
+    return this.ordersService.cancelOrder(query);
   }
 }

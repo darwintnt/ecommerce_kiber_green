@@ -1,10 +1,5 @@
 import { Controller, Inject, Logger } from '@nestjs/common';
-import {
-  INVENTORY_CONFIRM,
-  INVENTORY_RELEASE,
-  INVENTORY_RESERVE,
-  INVENTORY_VALIDATE,
-} from 'libs/constants';
+import { TOPICS } from 'libs/constants';
 import {
   type ConfirmInventoryRequestDto,
   type ReleaseInventoryRequestDto,
@@ -27,10 +22,9 @@ export class InventoryServiceController {
     private readonly inventoryService: InventoryServiceI,
   ) {}
 
-  @EventPattern(INVENTORY_VALIDATE)
+  @EventPattern(TOPICS.INVENTORY_VALIDATE)
   async handleValidate(
     @Payload() data: ValidateInventoryRequestDto,
-    @Ctx() context: NatsContext,
   ): Promise<ValidateInventoryResponseDto> {
     const result = await this.inventoryService.validateStock(data.items);
 
@@ -44,10 +38,9 @@ export class InventoryServiceController {
     };
   }
 
-  @EventPattern(INVENTORY_RESERVE)
+  @EventPattern(TOPICS.INVENTORY_RESERVE)
   async handleReserve(
     @Payload() data: ReserveInventoryRequestDto,
-    @Ctx() context: NatsContext,
   ): Promise<ReserveInventoryResponseDto> {
     const result = await this.inventoryService.reserve(
       data.orderId,
@@ -62,10 +55,9 @@ export class InventoryServiceController {
     };
   }
 
-  @EventPattern(INVENTORY_RELEASE)
+  @EventPattern(TOPICS.INVENTORY_RELEASE)
   async handleRelease(
     @Payload() data: ReleaseInventoryRequestDto,
-    @Ctx() context: NatsContext,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       if (data.reservationId) {
@@ -79,10 +71,9 @@ export class InventoryServiceController {
     }
   }
 
-  @EventPattern(INVENTORY_CONFIRM)
+  @EventPattern(TOPICS.INVENTORY_CONFIRM)
   async handleConfirm(
     @Payload() data: ConfirmInventoryRequestDto,
-    @Ctx() context: NatsContext,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       await this.inventoryService.confirm(data.reservationId);

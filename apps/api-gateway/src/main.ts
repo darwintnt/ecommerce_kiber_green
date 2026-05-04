@@ -1,4 +1,9 @@
-import { Logger, ValidationPipe } from '@nestjs/common';
+import {
+  Logger,
+  RequestMethod,
+  ValidationPipe,
+  VersioningType,
+} from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -8,8 +13,14 @@ async function bootstrap() {
   const port = process.env.port ?? 3000;
   const app = await NestFactory.create(AppModule);
 
+  app.enableVersioning({ type: VersioningType.URI });
   app.setGlobalPrefix('api', {
-    exclude: [],
+    exclude: [
+      {
+        path: '/',
+        method: RequestMethod.GET,
+      },
+    ],
   });
 
   app.useGlobalPipes(
@@ -22,8 +33,17 @@ async function bootstrap() {
 
   app.enableCors({
     origin: ['*'],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: [
+      'Access-Control-Allow-Origin',
+      'Origin',
+      'X-Requested-With',
+      'Accept',
+      'Content-Type',
+      'Authorization',
+    ],
+    exposedHeaders: 'Authorization',
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'OPTIONS', 'POST', 'PATCH', 'DELETE'],
   });
 
   // app.useGlobalFilters(new RpcCustomExceptionFilter());

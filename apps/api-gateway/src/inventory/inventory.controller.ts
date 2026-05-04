@@ -8,7 +8,7 @@ import {
   Inject,
   Logger,
 } from '@nestjs/common';
-import { INVENTORY_SERVICE, INVENTORY_VALIDATE } from '../constants';
+
 import { ClientProxy } from '@nestjs/microservices';
 import {
   ApiHeader,
@@ -20,6 +20,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 import { ValidateStockRequestDto } from './dto/validate.stock.request.dto';
 import { randomUUID } from 'crypto';
+import { INVENTORY_CLIENT_PROXY, TOPICS } from 'libs/constants';
 
 @ApiTags('Inventory')
 @Controller('inventory')
@@ -27,7 +28,7 @@ export class InventoryController {
   private readonly logger = new Logger(InventoryController.name);
 
   constructor(
-    @Inject(INVENTORY_SERVICE) private readonly client: ClientProxy,
+    @Inject(INVENTORY_CLIENT_PROXY) private readonly client: ClientProxy,
   ) {}
 
   @Get(':sku')
@@ -55,7 +56,7 @@ export class InventoryController {
     // Forward to inventory service - but we need to get by product ID, not SKU
     // The inventory service uses productId, so we'll query with sku as productId for now
     try {
-      return firstValueFrom(this.client.send(INVENTORY_VALIDATE, data));
+      return firstValueFrom(this.client.send(TOPICS.INVENTORY_VALIDATE, data));
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to get inventory for ${sku}: ${err.message}`);
@@ -84,7 +85,7 @@ export class InventoryController {
     };
 
     try {
-      return firstValueFrom(this.client.send(INVENTORY_VALIDATE, data));
+      return firstValueFrom(this.client.send(TOPICS.INVENTORY_VALIDATE, data));
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to validate stock: ${err.message}`);

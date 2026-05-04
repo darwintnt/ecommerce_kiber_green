@@ -16,16 +16,18 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { randomUUID } from 'crypto';
-import { PAYMENT_PROCESS, PAYMENT_SERVICE } from '../constants';
 import { ClientProxy } from '@nestjs/microservices';
 import { ProcessPaymentRequestDto } from './dto/process-payment-request.dto';
+import { PAYMENT_CLIENT_PROXY, TOPICS } from 'libs/constants';
 
 @ApiTags('Payments')
 @Controller('payments')
 export class PaymentsController {
   private readonly logger = new Logger(PaymentsController.name);
 
-  constructor(@Inject(PAYMENT_SERVICE) private readonly client: ClientProxy) {}
+  constructor(
+    @Inject(PAYMENT_CLIENT_PROXY) private readonly client: ClientProxy,
+  ) {}
 
   @Get(':transactionId')
   @ApiOperation({ summary: 'Get payment status by transaction ID' })
@@ -74,7 +76,7 @@ export class PaymentsController {
     };
 
     try {
-      return this.client.send(PAYMENT_PROCESS, data);
+      return this.client.send(TOPICS.PAYMENT_PROCESS, data);
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to process payment: ${err.message}`);
