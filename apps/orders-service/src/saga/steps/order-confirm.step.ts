@@ -48,8 +48,8 @@ export class OrderConfirmStep implements SagaStep {
   }
 
   async compensate(context: any): Promise<void> {
-    const { order } = context;
     this.logger.log(`[Compensation] Order`);
+    const { order } = context;
     const response = await this.orderRepository.updateStatus(
       order.id,
       OrderStatus.CANCELLED,

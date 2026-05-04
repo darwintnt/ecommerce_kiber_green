@@ -44,12 +44,12 @@ export class PaymentsController {
 
     // Payment service doesn't have a direct get endpoint - this would need to be added
     // For now, return a placeholder response indicating this is a gateway operation
-    return {
+    return Promise.resolve({
       transactionId,
       status: 'forwarded_to_service',
       correlationId: corrId,
       message: 'Direct transaction lookup not implemented at gateway level',
-    };
+    });
   }
 
   @Post('process')

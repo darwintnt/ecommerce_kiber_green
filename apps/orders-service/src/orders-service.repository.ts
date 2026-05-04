@@ -49,7 +49,7 @@ export class OrderRepository implements OrderRepositoryI {
       data: {
         id: order.id,
         customerId: order.customerId,
-        items: order.items as any,
+        items: order.items,
         total: order.total,
         status: order.status,
         inventoryReservationId: order.inventoryReservationId,
