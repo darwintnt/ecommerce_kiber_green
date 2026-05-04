@@ -1,37 +1,52 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CancelOrderCommand } from './cancel-order.command';
-import { type OrderRepositoryI } from '../../interfaces/orders-repository.interface';
+import { Inject } from '@nestjs/common';
+import {
+  ORDER_REPOSITORY,
+  type OrderRepositoryI,
+} from '../../interfaces/orders-repository.interface';
 import { Logger } from '@nestjs/common';
+import { OrderStatus } from '../../domain/order-status';
 
 @CommandHandler(CancelOrderCommand)
 export class CancelOrderHandler implements ICommandHandler<CancelOrderCommand> {
   private readonly logger = new Logger(CancelOrderHandler.name);
-  constructor(private readonly orderRepository: OrderRepositoryI) {}
 
-  async execute(command: CancelOrderCommand) {
-    // const order = await this.orderRepository.findById(command.orderId);
+  constructor(
+    @Inject(ORDER_REPOSITORY)
+    private readonly orderRepository: OrderRepositoryI,
+  ) {}
 
-    // if (!order) {
-    //   throw new Error('Order not found');
-    // }
+  async execute(
+    command: CancelOrderCommand,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const order = await this.orderRepository.findById(command.orderId);
 
-    // // Check if order can be cancelled (must not be COMPLETED or already CANCELLED)
-    // if (order.status === OrderStatus.COMPLETED) {
-    //   throw new Error('Cannot cancel order in COMPLETED state');
-    // }
+      if (!order) {
+        return { success: false, error: 'Order not found' };
+      }
 
-    // if (order.status === OrderStatus.CANCELLED) {
-    //   throw new Error('Order is already cancelled');
-    // }
+      if (order.status === OrderStatus.COMPLETED) {
+        return {
+          success: false,
+          error: 'Order cannot be cancelled in COMPLETED state',
+        };
+      }
 
-    // // Execute saga compensation (release inventory, refund payment if needed)
-    // await this.sagaOrchestrator.compensate(order);
+      if (order.status === OrderStatus.CANCELLED) {
+        return { success: false, error: 'Order is already cancelled' };
+      }
 
-    // // Update order status to CANCELLED
-    // await this.orderRepository.updateStatus(command.orderId, OrderStatus.CANCELLED);
+      await this.orderRepository.updateStatus(
+        command.orderId,
+        OrderStatus.CANCELLED,
+      );
 
-    // return { success: true, cancelled: true };
-
-    return Promise.resolve(true);
+      return { success: true };
+    } catch (error) {
+      this.logger.error('Cancel order failed', error);
+      return { success: false, error: (error as Error).message };
+    }
   }
 }

@@ -5,7 +5,6 @@ import {
   ORDER_REPOSITORY,
   type OrderRepositoryI,
 } from '../../interfaces/orders-repository.interface';
-import { RpcException } from '@nestjs/microservices';
 
 @QueryHandler(GetOrderQuery)
 export class GetOrderHandler implements IQueryHandler<GetOrderQuery> {
@@ -15,14 +14,16 @@ export class GetOrderHandler implements IQueryHandler<GetOrderQuery> {
   ) {}
 
   async execute(query: GetOrderQuery) {
-    const readModel = await this.repository.findById(
-      query.query.detail.orderId,
-    );
+    try {
+      const order = await this.repository.findById(query.query.detail.orderId);
 
-    if (!readModel) {
-      throw new RpcException('Order not found');
+      if (!order) {
+        return { success: true, data: null };
+      }
+
+      return { success: true, data: order };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
     }
-
-    return readModel;
   }
 }

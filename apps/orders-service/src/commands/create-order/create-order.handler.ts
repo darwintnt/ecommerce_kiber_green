@@ -57,15 +57,18 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
 
     try {
       await orchestrator.execute(context);
-      return {
-        success: true,
-        orderId: savedOrder.id,
-      };
+
+      if (!savedOrder?.id) {
+        return { success: false, error: 'Failed to create order' };
+      }
+
+      return { success: true, data: { orderId: savedOrder.id } };
     } catch (error) {
       this.logger.error(
         'Order creation failed, initiating compensation',
         error,
       );
+      return { success: false, error: (error as Error).message };
     }
   }
 }
