@@ -3,6 +3,7 @@ import { PrismaService } from './prisma.service';
 import { InventoryItem, InventoryRepositoryI } from './interfaces';
 import { Prisma } from '../generated/prisma/client';
 import { ReservationStatus } from './enums/reservation-status';
+import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 export class InventoryRepository implements InventoryRepositoryI {
@@ -34,13 +35,13 @@ export class InventoryRepository implements InventoryRepositoryI {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
-    if (!product) throw new Error(`Product ${productId} not found`);
+    if (!product) throw new RpcException(`Product ${productId} not found`);
 
     const newStock = product.stock + stockDelta;
     const newReserved = product.reserved + reservedDelta;
 
     if (newStock < 0 || newReserved < 0) {
-      throw new Error('Stock or reserved cannot be negative');
+      throw new RpcException('Stock or reserved cannot be negative');
     }
 
     await this.prisma.product.update({

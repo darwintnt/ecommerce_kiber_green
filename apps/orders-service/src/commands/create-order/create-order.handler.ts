@@ -10,6 +10,7 @@ import { Inject, Logger } from '@nestjs/common';
 import { ORDER_REPOSITORY } from '../../interfaces/orders-repository.interface';
 import { Order } from '../../domain/order.entity';
 import { OrderStatus } from '../../domain/order-status';
+import { RpcException } from '@nestjs/microservices';
 
 @CommandHandler(CreateOrderCommand)
 export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
@@ -24,14 +25,6 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
   ) {}
 
   async execute(command: CreateOrderCommand) {
-    const context: CreateOrder = {
-      order: {
-        id: crypto.randomUUID(),
-        customerId: command.query.detail.customerId as string,
-        items: command.query.detail.items as OrderItem[],
-      },
-    };
-
     const order = new Order({
       customerId: command.query.detail.customerId as string,
       items: [],
@@ -45,17 +38,18 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
     order.calculateTotal();
 
     if (!order.validate()) {
-      throw new Error('Invalid order: validation failed');
+      throw new RpcException('Invalid order: validation failed');
     }
 
-    // Save to repository
     const savedOrder = await this.orderRepository.save(order);
 
-    context.order.id = savedOrder.id;
+    const context = {
+      order: savedOrder,
+    };
 
     const steps = [
       this.inventoryReserveStep,
-      // this.paymentProcessStep,
+      this.paymentProcessStep,
       this.orderConfirmStep,
     ];
 
@@ -65,7 +59,7 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
       await orchestrator.execute(context);
       return {
         success: true,
-        orderId: context.order.id,
+        orderId: savedOrder.id,
       };
     } catch (error) {
       this.logger.error(

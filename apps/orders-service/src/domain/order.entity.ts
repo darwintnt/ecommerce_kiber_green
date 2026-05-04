@@ -1,3 +1,4 @@
+import { RpcException } from '@nestjs/microservices';
 import { OrderItem } from './order-item';
 import { OrderStatus, VALID_TRANSITIONS } from './order-status';
 
@@ -78,7 +79,7 @@ export class Order {
 
   transitionTo(newStatus: OrderStatus): void {
     if (!this.canTransitionTo(newStatus)) {
-      throw new Error(
+      throw new RpcException(
         `Invalid state transition from ${this.status} to ${newStatus}`,
       );
     }

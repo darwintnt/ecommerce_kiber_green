@@ -8,7 +8,6 @@ import {
   type OrderRepositoryI,
 } from '../../interfaces/orders-repository.interface';
 import { INVENTORY_CLIENT_PROXY } from 'libs/constants';
-import { CreateOrder } from '../../domain/order-item';
 import { OrderStatus } from '../../domain/order-status';
 
 @Injectable()
@@ -36,11 +35,13 @@ export class OrderConfirmStep implements SagaStep {
       }),
     );
 
-    if (!response) {
+    if (!response.success) {
+      this.logger.error(
+        `Inventory confirmation failed: ${response?.error ?? ''}`,
+      );
       return Promise.resolve(false);
     }
 
-    // Update order status to COMPLETED
     await this.orderRepository.updateStatus(order.id, OrderStatus.COMPLETED);
 
     return Promise.resolve(true);
@@ -49,6 +50,16 @@ export class OrderConfirmStep implements SagaStep {
   async compensate(context: any): Promise<void> {
     const { order } = context;
     this.logger.log(`[Compensation] Order`);
-    await this.orderRepository.updateStatus(order.id, OrderStatus.CANCELLED);
+    const response = await this.orderRepository.updateStatus(
+      order.id,
+      OrderStatus.CANCELLED,
+    );
+
+    if (response) {
+      this.logger.log(`[Compensate]: Order compensate complete: ${order.id}`);
+      return;
+    }
+
+    this.logger.log(`[Compensate]: Order release failed': ${order.id}`);
   }
 }

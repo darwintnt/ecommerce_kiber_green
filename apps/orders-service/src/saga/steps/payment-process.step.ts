@@ -3,7 +3,6 @@ import { SagaStep } from '../saga-step.interface';
 import { ClientProxy } from '@nestjs/microservices';
 import { PAYMENT_CLIENT_PROXY, TOPICS } from 'libs/constants';
 import { firstValueFrom } from 'rxjs';
-import { CreateOrder } from '../../domain/order-item';
 
 @Injectable()
 export class PaymentProcessStep implements SagaStep {
@@ -20,42 +19,48 @@ export class PaymentProcessStep implements SagaStep {
   async execute(context: any): Promise<boolean> {
     const { order } = context;
 
-    // const response = await firstValueFrom(
-    //   this.paymentClient.send(TOPICS.PAYMENT_PROCESS, {
-    //     orderId: order.id,
-    //     amount: Math.round(order.total * 100), // Convert to cents
-    //     currency: 'USD',
-    //     idempotencyKey: `payment-${order.id}-${Date.now()}`,
-    //   }),
-    // );
+    const response = await firstValueFrom(
+      this.paymentClient.send(TOPICS.PAYMENT_PROCESS, {
+        orderId: order.id,
+        amount: Math.round(order.total * 100), // Convert to cents
+        currency: 'USD',
+        idempotencyKey: `payment-${order.id}-${Date.now()}`,
+      }),
+    );
 
-    // if (response.success && response.transactionId) {
-    //   this.context.transactionId = response.transactionId;
-    //   return true;
-    // }
+    if (response.success && response.transactionId) {
+      context.order.transactionId = response.transactionId;
+      return Promise.resolve(true);
+    }
 
-    return false;
+    return Promise.resolve(false);
   }
 
   async compensate(context: any): Promise<void> {
     this.logger.log(`[Compensation] Payment`);
-    await Promise.resolve(false);
-    // if (!this.context.transactionId) {
-    //   return { success: true }; // Nothing to compensate
-    // }
+    const { order } = context;
 
-    // const response = firstValueFrom(this.paymentClient.send(TOPICS.PAYMENT_REFUND, {
-    //   transactionId: context.transactionId,
-    // }));
+    if (!order.transactionId) {
+      this.logger.log(
+        `[Compensate]: Payment Nothing to compensate ${order.transactionId}`,
+      );
+    }
 
-    // if (response.success) {
-    //   return { success: true, compensated: true };
-    // }
+    const response = await firstValueFrom(
+      this.paymentClient.send(TOPICS.PAYMENT_REFUND, {
+        transactionId: context.order.transactionId,
+      }),
+    );
 
-    // return {
-    //   success: false,
-    //   error: response.error || 'Payment refund failed',
-    //   compensated: false,
-    // };
+    if (response.success) {
+      this.logger.log(
+        `[Compensate]: Payment compensate complete: ${order.transactionId}`,
+      );
+      return;
+    }
+
+    this.logger.log(
+      `[Compensate]: Payment refund failed': ${order.transactionId}`,
+    );
   }
 }

@@ -24,7 +24,6 @@ import {
 } from '@nestjs/swagger';
 import {
   CreateOrderRequestDto,
-  ListOrdersRequestDto,
   OrderResponseDto,
 } from './dto/order-request.dto';
 import { randomUUID } from 'crypto';

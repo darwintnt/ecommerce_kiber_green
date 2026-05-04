@@ -8,7 +8,7 @@ import {
   type ValidateInventoryRequestDto,
   type ValidateInventoryResponseDto,
 } from './dtos';
-import { Ctx, EventPattern, NatsContext, Payload } from '@nestjs/microservices';
+import { EventPattern, Payload } from '@nestjs/microservices';
 import { ApiTags } from '@nestjs/swagger';
 import { INVENTORY_SERVICE, type InventoryServiceI } from './interfaces';
 

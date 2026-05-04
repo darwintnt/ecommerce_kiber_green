@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { SagaStep } from './saga-step.interface';
+import { RpcException } from '@nestjs/microservices';
 
 export class SagaOrchestrator {
   private readonly logger = new Logger(SagaOrchestrator.name);
@@ -16,7 +17,7 @@ export class SagaOrchestrator {
           `[Saga] Starting compensation for saga: ${step.getName()}`,
         );
         await this.compensate(context);
-        throw new Error(`[Saga Fail]: ${step.getName()}`);
+        throw new RpcException(`[Saga Fail]: ${step.getName()}`);
       }
       this.executeSteps.push(step);
       this.logger.log(`[Saga] Step ${step.getName()} completed successfully`);

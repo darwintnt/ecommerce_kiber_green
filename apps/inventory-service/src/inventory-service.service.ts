@@ -7,6 +7,8 @@ import {
   ValidateStockResult,
   type InventoryRepositoryI,
 } from './interfaces';
+import { RpcException } from '@nestjs/microservices';
+import { ApiResponse } from 'libs/interfaces/api-response.interface';
 
 @Injectable()
 export class InventoryService implements InventoryServiceI {
@@ -15,7 +17,9 @@ export class InventoryService implements InventoryServiceI {
     private readonly inventoryRepository: InventoryRepositoryI,
   ) {}
 
-  async validateStock(items: InventoryItem[]): Promise<ValidateStockResult> {
+  async validateStock(
+    items: InventoryItem[],
+  ): Promise<ApiResponse<ValidateStockResult>> {
     const unavailableItems: ValidateStockResult['unavailableItems'] = [];
 
     for (const item of items) {
@@ -95,7 +99,7 @@ export class InventoryService implements InventoryServiceI {
       await this.inventoryRepository.findReservationById(reservationId);
 
     if (!reservation) {
-      throw new Error('Reservation not found');
+      throw new RpcException('Reservation not found');
     }
 
     // Update reservation status to CONFIRMED
@@ -119,6 +123,10 @@ export class InventoryService implements InventoryServiceI {
         );
       }
     }
+
+    return {
+      
+    }
   }
 
   async release(reservationId: string): Promise<void> {
@@ -126,11 +134,14 @@ export class InventoryService implements InventoryServiceI {
       await this.inventoryRepository.findReservationById(reservationId);
 
     if (!reservation) {
-      throw new Error('Reservation not found');
+      throw new RpcException('Reservation not found');
     }
 
     // Release reserved stock (restore reserved to normal stock)
     const items = reservation.items;
+
+    console.log(items);
+
     for (const item of items) {
       const product = await this.inventoryRepository.findProductBySku(
         item.productId,
@@ -154,7 +165,7 @@ export class InventoryService implements InventoryServiceI {
       await this.inventoryRepository.findReservationByOrderId(orderId);
 
     if (!reservation) {
-      throw new Error('Reservation not found for order');
+      throw new RpcException('Reservation not found for order');
     }
 
     await this.release(reservation.id);

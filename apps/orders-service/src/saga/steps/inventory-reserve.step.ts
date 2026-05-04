@@ -38,13 +38,30 @@ export class InventoryReserveStep implements SagaStep {
   }
 
   async compensate(context: any): Promise<void> {
-    this.logger.log(`[Compensation] Inventory`);
+    this.logger.log(`[Compensation] Inventory release`);
     const { order } = context;
-    if (!order.reservationId) return;
-    await firstValueFrom(
+
+    if (!order.reservationId) {
+      this.logger.log(
+        `[Compensate]: Nothing to compensate ${order.transactionId}`,
+      );
+    }
+
+    const response = await firstValueFrom(
       this.inventoryClient.send(TOPICS.INVENTORY_RELEASE, {
         reservationId: order.reservationId,
       }),
+    );
+
+    if (response.success) {
+      this.logger.log(
+        `[Compensate]: compensate complete: ${order.reservationId}`,
+      );
+      return;
+    }
+
+    this.logger.log(
+      `[Compensate]: Inventory release failed': ${order.reservationId}`,
     );
   }
 }
