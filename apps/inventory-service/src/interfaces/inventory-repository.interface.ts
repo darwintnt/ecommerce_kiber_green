@@ -1,9 +1,9 @@
 export interface InventoryItem {
-  productId: string;
+  productId: string; // SKU in this context
   quantity: number;
 }
 
-interface InventoryReservation {
+export interface InventoryReservation {
   id: string;
   orderId: string;
   status: 'PENDING' | 'CONFIRMED' | 'RELEASED';
@@ -13,19 +13,6 @@ interface InventoryReservation {
 }
 
 export interface InventoryRepositoryI {
-  findProductBySku(sku: string): Promise<{
-    id: string;
-    sku: string;
-    stock: number;
-    reserved: number;
-  } | null>;
-
-  updateStock(
-    productId: string,
-    stockDelta: number,
-    reservedDelta: number,
-  ): Promise<void>;
-
   createReservation(
     orderId: string,
     items: InventoryItem[],

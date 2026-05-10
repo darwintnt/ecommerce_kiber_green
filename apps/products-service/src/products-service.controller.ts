@@ -1,6 +1,6 @@
 import { Controller, Inject, Logger } from '@nestjs/common';
 import { TOPICS } from 'libs/constants';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { MessagePattern, EventPattern, Payload } from '@nestjs/microservices';
 import { ApiResponse } from 'libs/interfaces/api-response.interface';
 import { PRODUCT_SERVICE, type ProductServiceI } from './interfaces';
 import { type ProxyContextI } from 'libs/interfaces/proxy-context.interface';
@@ -34,7 +34,7 @@ export class ProductsServiceController {
     @Payload() query: ProxyContextI,
   ): Promise<ApiResponse<any>> {
     this.logger.log(`Getting product by ID: ${query.detail.id}`);
-    return await this.productService.findById(query);
+    return this.productService.findById(query);
   }
 
   @MessagePattern(TOPICS.PRODUCT_GET_BY_SKU)
@@ -42,7 +42,7 @@ export class ProductsServiceController {
     @Payload() query: ProxyContextI,
   ): Promise<ApiResponse<any>> {
     this.logger.log(`Getting product by SKU: ${query.detail.sku}`);
-    return await this.productService.findBySku(query);
+    return this.productService.findBySku(query);
   }
 
   @MessagePattern(TOPICS.PRODUCT_UPDATE)
@@ -50,7 +50,7 @@ export class ProductsServiceController {
     @Payload() query: ProxyContextI,
   ): Promise<ApiResponse<any>> {
     this.logger.log(`Updating product: ${query.detail.id}`);
-    return await this.productService.update(query);
+    return this.productService.update(query);
   }
 
   @MessagePattern(TOPICS.PRODUCT_DELETE)
@@ -58,6 +58,39 @@ export class ProductsServiceController {
     @Payload() query: ProxyContextI,
   ): Promise<ApiResponse<void>> {
     this.logger.log(`Deleting product: ${query.detail.id}`);
-    return await this.productService.delete(query);
+    return this.productService.delete(query);
+  }
+
+  @EventPattern(TOPICS.INVENTORY_STOCK_RESERVED)
+  async handleStockReserved(
+    @Payload()
+    data: {
+      detail: { items: { productId: string; quantity: number }[] };
+    },
+  ): Promise<void> {
+    this.logger.log(`Handling INVENTORY_STOCK_RESERVED event`);
+    await this.productService.handleStockReserved(data.detail.items);
+  }
+
+  @EventPattern(TOPICS.INVENTORY_STOCK_RELEASED)
+  async handleStockReleased(
+    @Payload()
+    data: {
+      detail: { items: { productId: string; quantity: number }[] };
+    },
+  ): Promise<void> {
+    this.logger.log(`Handling INVENTORY_STOCK_RELEASED event`);
+    await this.productService.handleStockReleased(data.detail.items);
+  }
+
+  @EventPattern(TOPICS.INVENTORY_STOCK_CONFIRMED)
+  async handleStockConfirmed(
+    @Payload()
+    data: {
+      detail: { items: { productId: string; quantity: number }[] };
+    },
+  ): Promise<void> {
+    this.logger.log(`Handling INVENTORY_STOCK_CONFIRMED event`);
+    await this.productService.handleStockConfirmed(data.detail.items);
   }
 }

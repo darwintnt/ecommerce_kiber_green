@@ -3,6 +3,11 @@ const INVENTORY_RESERVE = 'inventory.reserve';
 const INVENTORY_RELEASE = 'inventory.release';
 const INVENTORY_CONFIRM = 'inventory.confirm';
 
+// Inventory → Products events
+const INVENTORY_STOCK_RESERVED = 'inventory.stock.reserved';
+const INVENTORY_STOCK_RELEASED = 'inventory.stock.released';
+const INVENTORY_STOCK_CONFIRMED = 'inventory.stock.confirmed';
+
 const PAYMENT_PROCESS = 'payment.process';
 const PAYMENT_REFUND = 'payment.refund';
 
@@ -23,6 +28,9 @@ export const TOPICS = {
   INVENTORY_RESERVE,
   INVENTORY_RELEASE,
   INVENTORY_CONFIRM,
+  INVENTORY_STOCK_RESERVED,
+  INVENTORY_STOCK_RELEASED,
+  INVENTORY_STOCK_CONFIRMED,
   PAYMENT_PROCESS,
   PAYMENT_REFUND,
   ORDERS_CREATE,

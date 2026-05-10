@@ -1,5 +1,6 @@
 export * from './inventory-repository.interface';
 export * from './inventory-service.interface';
+export * from './product-service-client.interface';
 export type { ApiResponse } from 'libs/interfaces/api-response.interface';
 
 export interface InventoryItem {

@@ -72,6 +72,47 @@ export class ProductRepository implements ProductRepositoryI {
     });
   }
 
+  async updateReserved(sku: string, reservedDelta: number): Promise<void> {
+    // Atomic update to avoid race conditions
+    const result = await this.prisma.product.updateMany({
+      where: {
+        sku,
+        // Only update if the result won't be negative
+        reserved:
+          reservedDelta >= 0 ? undefined : { gte: Math.abs(reservedDelta) },
+      },
+      data: {
+        reserved: { increment: reservedDelta },
+      },
+    });
+
+    if (result.count === 0) {
+      throw new Error(
+        `Product with SKU ${sku} not found or insufficient reserved stock`,
+      );
+    }
+  }
+
+  async decrementStock(sku: string, quantity: number): Promise<void> {
+    // Atomic update to avoid race conditions
+    const result = await this.prisma.product.updateMany({
+      where: {
+        sku,
+        // Only update if stock is sufficient
+        stock: { gte: quantity },
+      },
+      data: {
+        stock: { decrement: quantity },
+      },
+    });
+
+    if (result.count === 0) {
+      throw new Error(
+        `Product with SKU ${sku} not found or insufficient stock`,
+      );
+    }
+  }
+
   async delete(id: string): Promise<void> {
     await this.prisma.product.delete({ where: { id } });
   }

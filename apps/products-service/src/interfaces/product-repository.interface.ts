@@ -45,6 +45,8 @@ export interface ProductRepositoryI {
     conditions?: Record<string, any>,
   ): Promise<PaginatedResult<Product>>;
   update(id: string, dto: UpdateProductDto): Promise<Product>;
+  updateReserved(sku: string, reservedDelta: number): Promise<void>;
+  decrementStock(sku: string, quantity: number): Promise<void>;
   delete(id: string): Promise<void>;
 }
 

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ProductServiceI, ProductRepositoryI } from './interfaces';
 import { ProductData, PRODUCT_REPOSITORY } from './interfaces';
 import { ApiResponse } from 'libs/interfaces/api-response.interface';
@@ -9,6 +9,7 @@ import { ProductEntity, ProductProps } from './domain/product';
 
 @Injectable()
 export class ProductsService implements ProductServiceI {
+  private readonly logger = new Logger(ProductsService.name);
   constructor(
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: ProductRepositoryI,
@@ -120,6 +121,66 @@ export class ProductsService implements ProductServiceI {
       return { success: true };
     } catch (error) {
       return { success: false, error: (error as Error).message };
+    }
+  }
+
+  async handleStockReserved(
+    items: { productId: string; quantity: number }[],
+  ): Promise<void> {
+    try {
+      for (const item of items) {
+        // Increment reserved (stock is not touched on reservation)
+        // productId is SKU in this context
+        await this.productRepository.updateReserved(
+          item.productId,
+          item.quantity,
+        );
+      }
+      this.logger.log(`Reserved stock updated for ${items.length} items`);
+    } catch (error) {
+      this.logger.error(`Failed to update reserved stock: ${error}`);
+      // Don't rethrow - event handlers should not crash the application
+    }
+  }
+
+  async handleStockReleased(
+    items: { productId: string; quantity: number }[],
+  ): Promise<void> {
+    try {
+      for (const item of items) {
+        // Release reserved (put it back to available stock)
+        // productId is SKU in this context
+        await this.productRepository.updateReserved(
+          item.productId,
+          -item.quantity,
+        );
+      }
+      this.logger.log(`Released stock updated for ${items.length} items`);
+    } catch (error) {
+      this.logger.error(`Failed to update released stock: ${error}`);
+    }
+  }
+
+  async handleStockConfirmed(
+    items: { productId: string; quantity: number }[],
+  ): Promise<void> {
+    try {
+      for (const item of items) {
+        // Confirm: decrement stock AND decrement reserved
+        // (the reserved amount was holding the stock, now it becomes actual sold)
+        // productId is SKU in this context
+        await this.productRepository.decrementStock(
+          item.productId,
+          item.quantity,
+        );
+        await this.productRepository.updateReserved(
+          item.productId,
+          -item.quantity,
+        );
+      }
+      this.logger.log(`Confirmed stock updated for ${items.length} items`);
+    } catch (error) {
+      this.logger.error(`Failed to update confirmed stock: ${error}`);
     }
   }
 

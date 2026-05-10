@@ -3,55 +3,12 @@ import { PrismaService } from './prisma.service';
 import { InventoryItem, InventoryRepositoryI } from './interfaces';
 import { Prisma } from '../generated/prisma/client';
 import { ReservationStatus } from './enums/reservation-status';
-import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 export class InventoryRepository implements InventoryRepositoryI {
   constructor(
     @Inject('DATABASE_SERVICE') private readonly prisma: PrismaService,
   ) {}
-
-  async findProductBySku(sku: string): Promise<{
-    id: string;
-    sku: string;
-    stock: number;
-    reserved: number;
-  } | null> {
-    const product = await this.prisma.product.findUnique({ where: { sku } });
-    if (!product) return null;
-    return {
-      id: product.id,
-      sku: product.sku,
-      stock: product.stock,
-      reserved: product.reserved,
-    };
-  }
-
-  async updateStock(
-    productId: string,
-    stockDelta: number,
-    reservedDelta: number,
-  ): Promise<void> {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-    });
-    if (!product) throw new RpcException(`Product ${productId} not found`);
-
-    const newStock = product.stock + stockDelta;
-    const newReserved = product.reserved + reservedDelta;
-
-    if (newStock < 0 || newReserved < 0) {
-      throw new RpcException('Stock or reserved cannot be negative');
-    }
-
-    await this.prisma.product.update({
-      where: { id: productId },
-      data: {
-        stock: newStock,
-        reserved: newReserved,
-      },
-    });
-  }
 
   async createReservation(
     orderId: string,

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   INVENTORY_REPOSITORY,
   InventoryItem,
@@ -6,14 +6,22 @@ import {
   ReserveData,
   ValidateStockData,
   type InventoryRepositoryI,
+  PRODUCT_SERVICE_CLIENT,
+  type ProductServiceClientI,
 } from './interfaces';
 import { ApiResponse } from 'libs/interfaces/api-response.interface';
+import { InventoryEventPublisher } from './inventory-event-publisher';
 
 @Injectable()
 export class InventoryService implements InventoryServiceI {
+  private readonly logger = new Logger(InventoryService.name);
+
   constructor(
     @Inject(INVENTORY_REPOSITORY)
     private readonly inventoryRepository: InventoryRepositoryI,
+    @Inject(PRODUCT_SERVICE_CLIENT)
+    private readonly productClient: ProductServiceClientI,
+    private readonly eventPublisher: InventoryEventPublisher,
   ) {}
 
   async validateStock(
@@ -23,11 +31,11 @@ export class InventoryService implements InventoryServiceI {
 
     try {
       for (const item of items) {
-        const product = await this.inventoryRepository.findProductBySku(
+        const productResponse = await this.productClient.getProductBySku(
           item.productId,
         );
 
-        if (!product) {
+        if (!productResponse.success || !productResponse.data) {
           unavailableItems.push({
             productId: item.productId,
             requestedQuantity: item.quantity,
@@ -36,6 +44,7 @@ export class InventoryService implements InventoryServiceI {
           continue;
         }
 
+        const product = productResponse.data;
         const availableQuantity = product.stock - product.reserved;
 
         if (availableQuantity < item.quantity) {
@@ -77,18 +86,16 @@ export class InventoryService implements InventoryServiceI {
         items,
       );
 
-      for (const item of items) {
-        const product = await this.inventoryRepository.findProductBySku(
-          item.productId,
-        );
-        if (product) {
-          await this.inventoryRepository.updateStock(
-            product.id,
-            0,
-            item.quantity,
-          );
-        }
-      }
+      // Emit event for products-service to update reserved stock
+      await this.eventPublisher.publishStockReserved({
+        orderId,
+        reservationId: reservation.id,
+        items: items.map((item) => ({
+          productId: item.productId,
+          sku: item.productId, // productId is SKU in this context
+          quantity: item.quantity,
+        })),
+      });
 
       return { success: true, data: { reservationId: reservation.id } };
     } catch (error) {
@@ -105,24 +112,22 @@ export class InventoryService implements InventoryServiceI {
         return { success: false, error: 'Reservation not found' };
       }
 
+      if (reservation.status !== 'PENDING') {
+        return { success: false, error: 'Reservation is not in PENDING state' };
+      }
+
       await this.inventoryRepository.updateReservationStatus(
         reservationId,
         'CONFIRMED',
       );
 
-      const items = reservation.items;
-      for (const item of items) {
-        const product = await this.inventoryRepository.findProductBySku(
-          item.productId,
-        );
-        if (product) {
-          await this.inventoryRepository.updateStock(
-            product.id,
-            -item.quantity,
-            -item.quantity,
-          );
-        }
-      }
+      // Emit event for products-service to confirm stock reservation
+      await this.eventPublisher.publishStockConfirmed({
+        reservationId,
+        orderId: reservation.orderId,
+        items: reservation.items,
+      });
+
       return { success: true };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -138,24 +143,19 @@ export class InventoryService implements InventoryServiceI {
         return { success: false, error: 'Reservation not found' };
       }
 
-      const items = reservation.items;
-
-      console.log(items);
-
-      for (const item of items) {
-        const product = await this.inventoryRepository.findProductBySku(
-          item.productId,
-        );
-        if (product) {
-          await this.inventoryRepository.updateStock(
-            product.id,
-            0,
-            -item.quantity,
-          );
-        }
+      if (reservation.status === 'RELEASED') {
+        return { success: false, error: 'Reservation already released' };
       }
 
       await this.inventoryRepository.releaseReservation(reservationId);
+
+      // Emit event for products-service to release reserved stock
+      await this.eventPublisher.publishStockReleased({
+        reservationId,
+        orderId: reservation.orderId,
+        items: reservation.items,
+      });
+
       return { success: true };
     } catch (error) {
       return { success: false, error: (error as Error).message };
