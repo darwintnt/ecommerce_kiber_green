@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PRODUCT_CLIENT_PROXY, PRODUCT_QUEUE } from 'libs/constants';
@@ -18,6 +17,6 @@ import { PRODUCT_CLIENT_PROXY, PRODUCT_QUEUE } from 'libs/constants';
     ]),
   ],
   controllers: [ProductsController],
-  providers: [ProductsService],
+  providers: [],
 })
 export class ProductsModule {}

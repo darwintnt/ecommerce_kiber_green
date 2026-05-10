@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ProductsServiceController } from './products-service.controller';
-import { ProductsServiceService } from './products-service.service';
+import { ProductsService } from './products-service.service';
 import { ConfigModule } from '@nestjs/config';
 import { configuration } from './config/envs';
+import { PrismaService } from './prisma.service';
+import { ProductRepository } from './products.service.repository';
+import { PRODUCT_REPOSITORY, PRODUCT_SERVICE } from './interfaces';
 
 @Module({
   imports: [
@@ -12,6 +15,19 @@ import { configuration } from './config/envs';
     }),
   ],
   controllers: [ProductsServiceController],
-  providers: [ProductsServiceService],
+  providers: [
+    {
+      provide: PRODUCT_SERVICE,
+      useClass: ProductsService,
+    },
+    {
+      provide: PRODUCT_REPOSITORY,
+      useClass: ProductRepository,
+    },
+    {
+      provide: 'DATABASE_SERVICE',
+      useClass: PrismaService,
+    },
+  ],
 })
 export class ProductsServiceModule {}
