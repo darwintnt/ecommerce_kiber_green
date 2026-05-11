@@ -76,6 +76,20 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
         return { success: false, error: 'Failed to create order' };
       }
 
+      if (context.order.reservationId) {
+        await this.orderRepository.setReservation(
+          savedOrder.id,
+          context.order.reservationId,
+        );
+      }
+
+      if (context.order.transactionId) {
+        await this.orderRepository.setPaymentTransaction(
+          savedOrder.id,
+          context.order.transactionId,
+        );
+      }
+
       return { success: true, data: { orderId: savedOrder.id } };
     } catch (error) {
       this.logger.error(

@@ -34,8 +34,6 @@ export class CancelOrderHandler implements ICommandHandler<CancelOrderCommand> {
     try {
       const order = await this.orderRepository.findById(command.orderId);
 
-      console.log(order);
-
       if (!order) {
         return { success: false, error: 'Order not found' };
       }

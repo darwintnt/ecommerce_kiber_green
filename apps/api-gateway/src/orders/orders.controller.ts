@@ -207,7 +207,15 @@ export class OrdersController {
     };
 
     try {
-      return firstValueFrom(this.client.send(TOPICS.ORDERS_CANCEL, data));
+      const result = await firstValueFrom(
+        this.client.send(TOPICS.ORDERS_CANCEL, data),
+      );
+
+      if (!result.success) {
+        throw new BadRequestException(result.error || 'Order Cancel failed');
+      }
+
+      return result;
     } catch (error) {
       const err = error as Error;
       if (error instanceof BadRequestException) {
