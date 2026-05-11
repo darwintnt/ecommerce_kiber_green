@@ -28,37 +28,44 @@ export class OrderConfirmStep implements SagaStep {
   async execute(context: any): Promise<boolean> {
     const { order } = context;
 
-    const response = await firstValueFrom(
+    // Step 1: Mark inventory as CONFIRMED
+    // Only do this AFTER we know we'll update the order to COMPLETED
+    // If this succeeds but order update fails, compensate will release the confirmed reservation
+    const confirmResponse = await firstValueFrom(
       this.inventoryClient.send(TOPICS.INVENTORY_CONFIRM, {
         reservationId: order.reservationId,
       }),
     );
 
-    if (!response.success) {
+    if (!confirmResponse.success) {
       this.logger.error(
-        `Inventory confirmation failed: ${response?.error ?? ''}`,
+        `Inventory confirmation failed: ${confirmResponse?.error ?? ''}`,
       );
       return Promise.resolve(false);
     }
 
+    // Step 2: Mark order as COMPLETED
+    // If this fails, compensate will roll back the inventory confirm
     await this.orderRepository.updateStatus(order.id, OrderStatus.COMPLETED);
 
     return Promise.resolve(true);
   }
 
   async compensate(context: any): Promise<void> {
-    this.logger.log(`[Compensation] Order`);
+    this.logger.log(`[Compensation] Order confirm - rolling back`);
     const { order } = context;
-    const response = await this.orderRepository.updateStatus(
-      order.id,
-      OrderStatus.CANCELLED,
-    );
 
-    if (response) {
-      this.logger.log(`[Compensate]: Order compensate complete: ${order.id}`);
-      return;
+    // Rollback: mark order as CANCELLED
+    await this.orderRepository.updateStatus(order.id, OrderStatus.CANCELLED);
+
+    // Rollback: release the confirmed inventory (idempotent - release handles already-released)
+    if (order.reservationId) {
+      await firstValueFrom(
+        this.inventoryClient.send(TOPICS.INVENTORY_RELEASE, {
+          reservationId: order.reservationId,
+        }),
+      );
+      this.logger.log(`[Compensate]: Order release failed': ${order.id}`);
     }
-
-    this.logger.log(`[Compensate]: Order release failed': ${order.id}`);
   }
 }
