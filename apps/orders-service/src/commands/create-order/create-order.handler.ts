@@ -45,8 +45,19 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
 
     const savedOrder = await this.orderRepository.save(order);
 
-    const context: { order: any; errorMessage?: string } = {
+    const idempotencyKey = command.query.headers?.['Idempotency-Key'];
+
+    if (!idempotencyKey) {
+      this.logger.warn('No Idempotency-Key provided in headers');
+    }
+
+    const context: {
+      order: any;
+      errorMessage?: string;
+      idempotencyKey?: string;
+    } = {
       order: savedOrder,
+      idempotencyKey,
     };
 
     const steps = [

@@ -17,14 +17,25 @@ export class PaymentProcessStep implements SagaStep {
   }
 
   async execute(context: any): Promise<boolean> {
-    const { order } = context;
+    const { order, idempotencyKey } = context;
+
+    if (!idempotencyKey) {
+      this.logger.warn(
+        'No idempotency key in context, payment may not be idempotent',
+      );
+    }
+
+    // Use the idempotency key from frontend, or fallback to order-based key
+    const paymentIdempotencyKey = idempotencyKey
+      ? `payment-${idempotencyKey}-${order.id}`
+      : `payment-${order.id}`;
 
     const response = await firstValueFrom(
       this.paymentClient.send(TOPICS.PAYMENT_PROCESS, {
         orderId: order.id,
-        amount: Math.round(order.total * 100), // Convert to cents
-        currency: 'USD',
-        idempotencyKey: `payment-${order.id}-${Date.now()}`,
+        amount: order.total,
+        currency: 'COP',
+        idempotencyKey: paymentIdempotencyKey,
       }),
     );
 

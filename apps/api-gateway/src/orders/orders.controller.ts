@@ -127,26 +127,44 @@ export class OrdersController {
     required: false,
     description: 'Correlation ID for distributed tracing',
   })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description: 'Unique key for idempotent requests',
+  })
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Order created successfully',
     type: OrderResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Invalid request data' })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request data or missing Idempotency-Key',
+  })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async createOrder(
     @Body() createOrderDto: CreateOrderRequestDto,
-    @Headers('x-correlation-id') correlationId?: string,
+    @Headers('x-correlation-id') correlationId: string,
+    @Headers('Idempotency-Key') idempotencyKey: string,
   ): Promise<OrderResponseDto> {
+    if (!idempotencyKey) {
+      throw new BadRequestException('Idempotency-Key header is required');
+    }
+
     const corrId = correlationId || this.generateCorrelationId();
-    this.logger.log(`Creating order with correlationId: ${corrId}`);
+    this.logger.log(
+      `Creating order with correlationId: ${corrId} and idempotencyKey: ${idempotencyKey}`,
+    );
 
     const data = {
       detail: {
         ...createOrderDto,
         correlationId: corrId,
       },
-      headers: { 'x-correlation-id': corrId },
+      headers: {
+        'x-correlation-id': corrId,
+        'Idempotency-Key': idempotencyKey,
+      },
     };
 
     try {
