@@ -3,7 +3,6 @@ const INVENTORY_RESERVE = 'inventory.reserve';
 const INVENTORY_RELEASE = 'inventory.release';
 const INVENTORY_CONFIRM = 'inventory.confirm';
 
-// Inventory → Products events
 const INVENTORY_STOCK_RESERVED = 'inventory.stock.reserved';
 const INVENTORY_STOCK_RELEASED = 'inventory.stock.released';
 const INVENTORY_STOCK_CONFIRMED = 'inventory.stock.confirmed';

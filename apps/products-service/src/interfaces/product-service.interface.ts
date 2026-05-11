@@ -11,7 +11,6 @@ export interface ProductServiceI {
   findAll(query: ProxyContextI): Promise<ApiResponse<PaginatedResult<Product>>>;
   update(query: ProxyContextI): Promise<ApiResponse<ProductData>>;
   delete(query: ProxyContextI): Promise<ApiResponse<void>>;
-  // Event handlers for inventory events
   handleStockReserved(
     items: { productId: string; quantity: number }[],
   ): Promise<void>;
