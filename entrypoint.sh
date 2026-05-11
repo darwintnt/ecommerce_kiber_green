@@ -92,5 +92,5 @@ echo "=================================================="
 if [ "$NODE_ENV" = "production" ]; then
   exec node dist/apps/${APP_NAME}/main
 else
-  exec pnpm start:dev --filter=${APP_NAME}
+  exec npx nest start --watch --project=${APP_NAME}
 fi
