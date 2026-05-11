@@ -46,9 +46,6 @@ async function bootstrap() {
     methods: ['GET', 'HEAD', 'PUT', 'OPTIONS', 'POST', 'PATCH', 'DELETE'],
   });
 
-  // app.useGlobalFilters(new RpcCustomExceptionFilter());
-
-  // Swagger configuration
   const swaggerConfig = new DocumentBuilder()
     .setTitle('API Gateway')
     .setDescription(

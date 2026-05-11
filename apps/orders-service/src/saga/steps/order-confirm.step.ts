@@ -28,7 +28,6 @@ export class OrderConfirmStep implements SagaStep {
   async execute(context: any): Promise<boolean> {
     const { order } = context;
 
-    // Confirm inventory reservation
     const response = await firstValueFrom(
       this.inventoryClient.send(TOPICS.INVENTORY_CONFIRM, {
         reservationId: order.reservationId,

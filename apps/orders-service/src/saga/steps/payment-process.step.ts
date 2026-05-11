@@ -25,7 +25,6 @@ export class PaymentProcessStep implements SagaStep {
       );
     }
 
-    // Use the idempotency key from frontend, or fallback to order-based key
     const paymentIdempotencyKey = idempotencyKey
       ? `payment-${idempotencyKey}-${order.id}`
       : `payment-${order.id}`;

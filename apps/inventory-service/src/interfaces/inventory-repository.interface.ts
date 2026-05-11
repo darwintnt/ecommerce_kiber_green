@@ -1,5 +1,5 @@
 export interface InventoryItem {
-  productId: string; // SKU in this context
+  productId: string; // SKU
   quantity: number;
 }
 

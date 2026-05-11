@@ -42,8 +42,6 @@ export class PaymentsController {
     const corrId = correlationId || this.generateCorrelationId();
     this.logger.log(`Getting payment status for transaction: ${transactionId}`);
 
-    // Payment service doesn't have a direct get endpoint - this would need to be added
-    // For now, return a placeholder response indicating this is a gateway operation
     return Promise.resolve({
       transactionId,
       status: 'forwarded_to_service',

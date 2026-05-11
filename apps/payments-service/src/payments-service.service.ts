@@ -32,10 +32,10 @@ export class PaymentsService implements PaymentServiceI {
   async processPayment(
     dto: ProcessPaymentDto,
   ): Promise<ApiResponse<ProcessPaymentData>> {
-    // Check idempotency key first
     const existingKey = await this.idempotencyRepository.findByKey(
       dto.idempotencyKey,
     );
+
     if (existingKey && !this.idempotencyRepository.isExpired(existingKey)) {
       this.logger.log(
         `Returning cached response for idempotency key: ${dto.idempotencyKey}`,
@@ -75,7 +75,6 @@ export class PaymentsService implements PaymentServiceI {
     }
 
     if (isPaymentApproved) {
-      // Generate transaction ID
       const transactionId = crypto.randomUUID();
       const txnId = `txn-${transactionId}`;
 
@@ -96,7 +95,6 @@ export class PaymentsService implements PaymentServiceI {
 
       return response;
     } else {
-      // Update payment status to DECLINED
       await this.paymentRepository.updateStatus(
         payment.id,
         PaymentStatus.DECLINED,
@@ -107,7 +105,6 @@ export class PaymentsService implements PaymentServiceI {
         error: 'Payment declined - check payment details or try again',
       };
 
-      // Store response in idempotency key
       await this.idempotencyRepository.create({
         key: dto.idempotencyKey,
         response,
@@ -119,7 +116,6 @@ export class PaymentsService implements PaymentServiceI {
   }
 
   async refund(dto: RefundDto): Promise<ApiResponse<RefundData>> {
-    // Find payment by transaction ID
     const payment = await this.paymentRepository.findByTransactionId(
       dto.transactionId,
     );

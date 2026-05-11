@@ -57,7 +57,6 @@ export class InventoryValidateStep implements SagaStep {
 
   async compensate(context: any): Promise<void> {
     const { order } = context;
-    // No compensation needed - this step only validates, doesn't modify state
     this.logger.log(`[${this.getName()}] No compensation needed`);
     this.logger.log(
       `[Compensate][${this.getName()}]: Inventory release failed': ${order.reservationId}`,

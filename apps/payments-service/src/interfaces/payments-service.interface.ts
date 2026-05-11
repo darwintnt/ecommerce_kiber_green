@@ -15,7 +15,6 @@ export interface ProcessPaymentDto {
   idempotencyKey: string;
 }
 
-// New data interfaces for ApiResponse-wrapped responses
 export interface ProcessPaymentData {
   transactionId: string;
 }
@@ -25,27 +24,10 @@ export interface RefundData {
   refundedAmount: number;
 }
 
-// DEPRECATED: Flat types replaced by ApiResponse-wrapped types
-// Keeping as comments for reference during transition
-// export interface ProcessPaymentResult {
-//   success: boolean;
-//   transactionId?: string;
-//   error?: string;
-// }
-
 export interface RefundDto {
   transactionId: string;
   amount?: number;
 }
-
-// DEPRECATED: Flat types replaced by ApiResponse-wrapped types
-// Keeping as comments for reference during transition
-// export interface RefundResult {
-//   success: boolean;
-//   transactionId?: string;
-//   refundedAmount?: number;
-//   error?: string;
-// }
 
 export interface PaymentServiceI {
   processPayment(

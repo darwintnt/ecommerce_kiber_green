@@ -83,7 +83,6 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
         error instanceof Error ? error.message : String(error),
       );
 
-      // Update order status to CANCELLED when saga fails
       try {
         await this.orderRepository.updateStatus(
           savedOrder.id,
@@ -96,7 +95,6 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
         );
       }
 
-      // Handle RpcException which wraps the error differently
       let errorMessage = 'Order creation failed';
       if (error instanceof RpcException) {
         const rpcError = error.getError();
@@ -108,7 +106,6 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
         errorMessage = error.message;
       }
 
-      // If context has error message from validate step, use it
       if (context.errorMessage) {
         errorMessage = context.errorMessage;
       }

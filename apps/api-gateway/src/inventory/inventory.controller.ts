@@ -53,8 +53,6 @@ export class InventoryController {
       headers: { 'x-correlation-id': corrId },
     };
 
-    // Forward to inventory service - but we need to get by product ID, not SKU
-    // The inventory service uses productId, so we'll query with sku as productId for now
     try {
       return firstValueFrom(this.client.send(TOPICS.INVENTORY_VALIDATE, data));
     } catch (error) {

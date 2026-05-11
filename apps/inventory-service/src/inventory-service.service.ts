@@ -92,7 +92,7 @@ export class InventoryService implements InventoryServiceI {
         reservationId: reservation.id,
         items: items.map((item) => ({
           productId: item.productId,
-          sku: item.productId, // productId is SKU in this context
+          sku: item.productId,
           quantity: item.quantity,
         })),
       });
