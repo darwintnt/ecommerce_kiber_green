@@ -30,10 +30,23 @@ export class InventoryService implements InventoryServiceI {
     const unavailableItems: ValidateStockData['unavailableItems'] = [];
 
     try {
-      for (const item of items) {
-        const productResponse = await this.productClient.getProductBySku(
-          item.productId,
-        );
+      // Enforce max items per validation to prevent N+1 overload
+      const MAX_ITEMS_PER_VALIDATION = 50;
+      if (items.length > MAX_ITEMS_PER_VALIDATION) {
+        return {
+          success: false,
+          error: `Exceeds maximum items per validation (${MAX_ITEMS_PER_VALIDATION})`,
+        };
+      }
+
+      // Parallel product lookups to avoid N+1
+      const productResponses = await Promise.all(
+        items.map((item) => this.productClient.getProductBySku(item.productId)),
+      );
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const productResponse = productResponses[i];
 
         if (!productResponse.success || !productResponse.data) {
           unavailableItems.push({
@@ -55,6 +68,7 @@ export class InventoryService implements InventoryServiceI {
           });
         }
       }
+
       return {
         success: unavailableItems.length === 0,
         data: { valid: unavailableItems.length === 0, unavailableItems },
