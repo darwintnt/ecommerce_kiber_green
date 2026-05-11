@@ -17,7 +17,14 @@ export class IdempotencyRepository implements IdempotencyRepositoryI {
     const record = await this.prisma.idempotencyKey.findUnique({
       where: { key },
     });
-    return record;
+    if (!record) return null;
+    return {
+      id: record.id,
+      key: record.key,
+      response: record.response as Record<string, any>,
+      createdAt: record.createdAt,
+      expiresAt: record.expiresAt,
+    };
   }
 
   async create(dto: CreateIdempotencyKeyDto): Promise<IdempotencyKeyData> {
@@ -31,7 +38,13 @@ export class IdempotencyRepository implements IdempotencyRepositoryI {
         expiresAt,
       },
     });
-    return record;
+    return {
+      id: record.id,
+      key: record.key,
+      response: record.response as Record<string, any>,
+      createdAt: record.createdAt,
+      expiresAt: record.expiresAt,
+    };
   }
 
   isExpired(key: IdempotencyKeyData): boolean {

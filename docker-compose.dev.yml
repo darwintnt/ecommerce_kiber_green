@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     environment:
       - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=admin123
+      - POSTGRES_PASSWORD=ecommerce_pass
       - POSTGRES_DB=ecommerce_dev
     ports:
       - "5432:5432"
@@ -54,7 +54,7 @@ services:
       - POSTGRES_HOST=postgres_db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=admin123
+      - POSTGRES_PASSWORD=ecommerce_pass
       - POSTGRES_DB=ecommerce_dev
     networks:
       - microservices_net
@@ -82,7 +82,7 @@ services:
       - POSTGRES_HOST=postgres_db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=admin123
+      - POSTGRES_PASSWORD=ecommerce_pass
       - POSTGRES_DB=ecommerce_dev
     networks:
       - microservices_net
@@ -110,7 +110,7 @@ services:
       - POSTGRES_HOST=postgres_db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=admin123
+      - POSTGRES_PASSWORD=ecommerce_pass
       - POSTGRES_DB=ecommerce_dev
     networks:
       - microservices_net
@@ -138,7 +138,7 @@ services:
       - POSTGRES_HOST=postgres_db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=admin123
+      - POSTGRES_PASSWORD=ecommerce_pass
       - POSTGRES_DB=ecommerce_dev
     networks:
       - microservices_net
@@ -166,7 +166,7 @@ services:
       - POSTGRES_HOST=postgres_db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=admin123
+      - POSTGRES_PASSWORD=ecommerce_pass
       - POSTGRES_DB=ecommerce_dev
     networks:
       - microservices_net
