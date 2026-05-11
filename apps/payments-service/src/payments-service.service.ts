@@ -16,6 +16,7 @@ import {
   type IdempotencyRepositoryI,
 } from './interfaces/idempotency-repository.interface';
 import { ApiResponse } from 'libs/interfaces/api-response.interface';
+import { configuration } from './config/envs';
 
 @Injectable()
 export class PaymentsService implements PaymentServiceI {
@@ -49,11 +50,31 @@ export class PaymentsService implements PaymentServiceI {
       currency: dto.currency,
     });
 
-    // Simulate payment processing
-    // In production, this would call an actual payment gateway
-    const success = dto.amount > 0;
+    /**
+     * DEMO MODE: This is a mock payment processor.
+     * In production, replace this block with actual payment gateway integration:
+     * - Stripe (stripe.com)
+     * - Mercado Pago (mercadopago.com)
+     * - PayPal (paypal.com)
+     * - Etc.
+     *
+     * The mock logic below approves any positive amount for demonstration purposes.
+     */
+    let isPaymentApproved: boolean;
 
-    if (success) {
+    if (configuration().paymentDemoMode) {
+      // DEMO: Approves any positive amount
+      isPaymentApproved = dto.amount > 0;
+      this.logger.warn(
+        `[DEMO MODE] Payment processing for amount ${dto.amount} - result: ${isPaymentApproved ? 'APPROVED' : 'DECLINED'}`,
+      );
+    } else {
+      throw new Error(
+        'Payment gateway not configured. Set PAYMENT_DEMO_MODE=true for demo mode.',
+      );
+    }
+
+    if (isPaymentApproved) {
       // Generate transaction ID
       const transactionId = crypto.randomUUID();
       const txnId = `txn-${transactionId}`;
@@ -83,7 +104,7 @@ export class PaymentsService implements PaymentServiceI {
 
       const response: ApiResponse<ProcessPaymentData> = {
         success: false,
-        error: 'Payment declined - invalid amount',
+        error: 'Payment declined - check payment details or try again',
       };
 
       // Store response in idempotency key
