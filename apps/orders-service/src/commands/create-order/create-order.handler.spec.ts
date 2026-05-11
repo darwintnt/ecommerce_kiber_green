@@ -106,7 +106,10 @@ describe('CreateOrderHandler', () => {
     });
 
     it('should return cached response for existing non-expired idempotency key', async () => {
-      const cachedResponse = { success: true, data: { orderId: 'existing_order' } };
+      const cachedResponse = {
+        success: true,
+        data: { orderId: 'existing_order' },
+      };
       mockIdempotencyRepository.findByKey.mockResolvedValue({
         key: 'idem-key-001',
         response: cachedResponse,

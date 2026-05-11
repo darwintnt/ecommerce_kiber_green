@@ -24,6 +24,20 @@ import {
   PAYMENT_QUEUE,
 } from 'libs/constants';
 
+// Commands
+export const CommandHandlers = [...OrdersCommandHandlers];
+
+// Queries
+export const QueryHandlers = [...OrdersQueryHandlers];
+
+// Saga Steps
+export const SagaSteps = [
+  InventoryValidateStep,
+  InventoryReserveStep,
+  PaymentProcessStep,
+  OrderConfirmStep,
+];
+
 @Module({
   imports: [
     ConfigModule.forRoot({

@@ -69,7 +69,7 @@ api-gateway/
 
 ```bash
 # Levanta todos los servicios con hot-reload
-docker compose -f docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml down && docker compose -f docker-compose.dev.yml up --build
 
 # Ver logs en tiempo real
 docker compose -f docker-compose.dev.yml up -d
