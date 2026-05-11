@@ -37,7 +37,15 @@ export class OrdersService implements OrdersServiceI {
     query: ProxyContextI,
   ): Promise<ApiResponse<CreateOrderData>> {
     const order = await this.commandBus.execute(new CreateOrderCommand(query));
-    return { success: true, data: { orderId: order.data.orderId } };
+
+    if (!order.success) {
+      return {
+        success: order.success,
+        error: order.error || 'Order creation failed',
+      };
+    }
+
+    return { success: order.success, data: { orderId: order.data.orderId } };
   }
 
   async cancelOrder(query: ProxyContextI): Promise<ApiResponse<void>> {

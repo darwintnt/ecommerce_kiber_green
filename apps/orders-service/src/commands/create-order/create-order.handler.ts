@@ -1,6 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateOrderCommand } from './create-order.command';
 import { OrderRepository } from '../../orders-service.repository';
+import { InventoryValidateStep } from '../../saga/steps/inventory-validate.step';
 import { InventoryReserveStep } from '../../saga/steps/inventory-reserve.step';
 import { PaymentProcessStep } from '../../saga/steps/payment-process.step';
 import { OrderConfirmStep } from '../../saga/steps/order-confirm.step';
@@ -19,6 +20,7 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
   constructor(
     @Inject(ORDER_REPOSITORY)
     private readonly orderRepository: OrderRepository,
+    private readonly inventoryValidateStep: InventoryValidateStep,
     private readonly inventoryReserveStep: InventoryReserveStep,
     private readonly paymentProcessStep: PaymentProcessStep,
     private readonly orderConfirmStep: OrderConfirmStep,
@@ -43,11 +45,12 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
 
     const savedOrder = await this.orderRepository.save(order);
 
-    const context = {
+    const context: { order: any; errorMessage?: string } = {
       order: savedOrder,
     };
 
     const steps = [
+      this.inventoryValidateStep,
       this.inventoryReserveStep,
       this.paymentProcessStep,
       this.orderConfirmStep,
@@ -66,9 +69,40 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
     } catch (error) {
       this.logger.error(
         'Order creation failed, initiating compensation',
-        error,
+        error instanceof Error ? error.message : String(error),
       );
-      return { success: false, error: (error as Error).message };
+
+      // Update order status to CANCELLED when saga fails
+      try {
+        await this.orderRepository.updateStatus(
+          savedOrder.id,
+          OrderStatus.CANCELLED,
+        );
+        this.logger.log(`Order ${savedOrder.id} marked as CANCELLED`);
+      } catch (updateError) {
+        this.logger.error(
+          `Failed to update order status to CANCELLED: ${updateError}`,
+        );
+      }
+
+      // Handle RpcException which wraps the error differently
+      let errorMessage = 'Order creation failed';
+      if (error instanceof RpcException) {
+        const rpcError = error.getError();
+        errorMessage =
+          typeof rpcError === 'string'
+            ? rpcError
+            : (rpcError as any)?.message || errorMessage;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      // If context has error message from validate step, use it
+      if (context.errorMessage) {
+        errorMessage = context.errorMessage;
+      }
+
+      return { success: false, error: errorMessage };
     }
   }
 }

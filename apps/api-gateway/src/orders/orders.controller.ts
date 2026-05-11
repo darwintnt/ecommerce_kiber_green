@@ -150,7 +150,15 @@ export class OrdersController {
     };
 
     try {
-      return firstValueFrom(this.client.send(TOPICS.ORDERS_CREATE, data));
+      const result = await firstValueFrom(
+        this.client.send(TOPICS.ORDERS_CREATE, data),
+      );
+
+      if (!result.success) {
+        throw new BadRequestException(result.error || 'Order creation failed');
+      }
+
+      return result;
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to create order: ${err.message}`, err.stack);

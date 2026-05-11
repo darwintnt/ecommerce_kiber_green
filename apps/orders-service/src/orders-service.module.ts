@@ -11,6 +11,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { OrdersQueryHandlers } from './queries';
 import { OrdersCommandHandlers } from './commands';
 import { InventoryReserveStep } from './saga/steps/inventory-reserve.step';
+import { InventoryValidateStep } from './saga/steps/inventory-validate.step';
 import { PaymentProcessStep } from './saga/steps/payment-process.step';
 import { OrderConfirmStep } from './saga/steps/order-confirm.step';
 import { ClientsModule, Transport } from '@nestjs/microservices';
@@ -29,6 +30,7 @@ export const QueryHandlers = [...OrdersQueryHandlers];
 
 // Saga Steps
 export const SagaSteps = [
+  InventoryValidateStep,
   InventoryReserveStep,
   PaymentProcessStep,
   OrderConfirmStep,
