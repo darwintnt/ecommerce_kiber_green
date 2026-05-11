@@ -22,28 +22,6 @@ export class CreateOrderItemDto {
   price: number;
 }
 
-export class ShippingAddressDto {
-  @ApiProperty({ description: 'Street address', example: '123 Main St' })
-  @IsString()
-  street: string;
-
-  @ApiProperty({ description: 'City', example: 'New York' })
-  @IsString()
-  city: string;
-
-  @ApiProperty({ description: 'State/Province', example: 'NY' })
-  @IsString()
-  state: string;
-
-  @ApiProperty({ description: 'ZIP/Postal code', example: '10001' })
-  @IsString()
-  zipCode: string;
-
-  @ApiProperty({ description: 'Country', example: 'USA' })
-  @IsString()
-  country: string;
-}
-
 export class CreateOrderRequestDto {
   @ApiProperty({ description: 'Customer ID', example: 'cust_abc123' })
   @IsString()
@@ -61,21 +39,6 @@ export class CreateOrderRequestDto {
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
   items: CreateOrderItemDto[];
-
-  @ApiProperty({
-    description: 'Shipping address',
-    type: ShippingAddressDto,
-    example: {
-      street: '123 Main St',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001',
-      country: 'USA',
-    },
-  })
-  @ValidateNested()
-  @Type(() => ShippingAddressDto)
-  shippingAddress: ShippingAddressDto;
 }
 
 export class OrderResponseDto {
@@ -98,10 +61,6 @@ export class OrderResponseDto {
   @ApiProperty({ description: 'Order items', type: [CreateOrderItemDto] })
   @IsArray()
   items: CreateOrderItemDto[];
-
-  @ApiProperty({ description: 'Shipping address' })
-  @ValidateNested()
-  shippingAddress: ShippingAddressDto;
 
   @ApiPropertyOptional({ description: 'Created at' })
   @IsOptional()
