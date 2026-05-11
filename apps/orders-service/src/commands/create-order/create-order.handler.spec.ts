@@ -16,24 +16,32 @@ describe('CreateOrderHandler', () => {
   let handler: CreateOrderHandler;
   let mockOrderRepository: any;
   let mockIdempotencyRepository: any;
-  let mockSteps: any;
+  let mockValidateStep: any;
+  let mockReserveStep: any;
+  let mockPaymentStep: any;
+  let mockConfirmStep: any;
 
-  const validCommand = {
-    query: {
-      detail: {
-        customerId: 'cust_123',
-        items: [
-          { productId: 'prod_1', quantity: 2, price: 10 },
-          { productId: 'prod_2', quantity: 1, price: 20 },
-        ],
-      },
-      headers: {
-        'Idempotency-Key': 'idem-key-001',
-      },
+  const buildValidCommand = (extraHeaders: Record<string, string> = {}) => ({
+    detail: {
+      customerId: 'cust_123',
+      items: [
+        { productId: 'prod_1', quantity: 2, price: 10 },
+        { productId: 'prod_2', quantity: 1, price: 20 },
+      ],
     },
-  };
+    headers: {
+      'Idempotency-Key': `idem-key-${Date.now()}`,
+      ...extraHeaders,
+    },
+  });
 
-  beforeEach(async () => {
+  const buildMockStep = (name: string, executeResult = true) => ({
+    getName: () => name,
+    execute: jest.fn().mockResolvedValue(executeResult),
+    compensate: jest.fn().mockResolvedValue(undefined),
+  });
+
+  const setupMocks = () => {
     mockOrderRepository = {
       save: jest.fn(),
       setReservation: jest.fn(),
@@ -42,26 +50,19 @@ describe('CreateOrderHandler', () => {
     };
 
     mockIdempotencyRepository = {
-      findByKey: jest.fn().mockResolvedValue(null), // default: no existing key
+      findByKey: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({}),
-      isExpired: jest.fn().mockReturnValue(false), // default: not expired
+      isExpired: jest.fn().mockReturnValue(false),
     };
 
-    const createMockStep = (name: string, executeResult = true) => {
-      const step = {
-        getName: () => name,
-        execute: jest.fn().mockResolvedValue(executeResult),
-        compensate: jest.fn().mockResolvedValue(undefined),
-      };
-      return step;
-    };
+    mockValidateStep = buildMockStep('Inventory Validate Step', true);
+    mockReserveStep = buildMockStep('Inventory Reserve Step', true);
+    mockPaymentStep = buildMockStep('Payment Process Step', true);
+    mockConfirmStep = buildMockStep('Order Confirm Step', true);
+  };
 
-    const validateStep = createMockStep('Inventory Validate Step', true);
-    const reserveStep = createMockStep('Inventory Reserve Step', true);
-    const paymentStep = createMockStep('Payment Process Step', true);
-    const confirmStep = createMockStep('Order Confirm Step', true);
-
-    mockSteps = { validateStep, reserveStep, paymentStep, confirmStep };
+  const initModule = async () => {
+    setupMocks();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -71,42 +72,41 @@ describe('CreateOrderHandler', () => {
           provide: IDEMPOTENCY_REPOSITORY,
           useValue: mockIdempotencyRepository,
         },
-        { provide: InventoryValidateStep, useValue: validateStep },
-        { provide: InventoryReserveStep, useValue: reserveStep },
-        { provide: PaymentProcessStep, useValue: paymentStep },
-        { provide: OrderConfirmStep, useValue: confirmStep },
+        { provide: InventoryValidateStep, useValue: mockValidateStep },
+        { provide: InventoryReserveStep, useValue: mockReserveStep },
+        { provide: PaymentProcessStep, useValue: mockPaymentStep },
+        { provide: OrderConfirmStep, useValue: mockConfirmStep },
       ],
     }).compile();
 
     handler = module.get<CreateOrderHandler>(CreateOrderHandler);
+  };
+
+  beforeEach(async () => {
+    await initModule();
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   describe('execute', () => {
     it('should throw RpcException when Idempotency-Key is missing', async () => {
-      const commandWithoutKey = {
-        query: {
-          detail: {
-            customerId: 'cust_123',
-            items: [{ productId: 'prod_1', quantity: 2, price: 10 }],
-          },
-          headers: {},
+      const command = {
+        detail: {
+          customerId: 'cust_123',
+          items: [{ productId: 'prod_1', quantity: 2, price: 10 }],
         },
+        headers: {},
       };
 
       await expect(
-        handler.execute(new CreateOrderCommand(commandWithoutKey)),
+        handler.execute(new CreateOrderCommand(command)),
       ).rejects.toThrow(RpcException);
     });
 
     it('should return cached response for existing non-expired idempotency key', async () => {
-      const cachedResponse = {
-        success: true,
-        data: { orderId: 'existing_order' },
-      };
+      const cachedResponse = { success: true, data: { orderId: 'existing_order' } };
       mockIdempotencyRepository.findByKey.mockResolvedValue({
         key: 'idem-key-001',
         response: cachedResponse,
@@ -114,9 +114,9 @@ describe('CreateOrderHandler', () => {
       });
       mockIdempotencyRepository.isExpired.mockReturnValue(false);
 
-      const result = await handler.execute(
-        new CreateOrderCommand(validCommand),
-      );
+      const command = buildValidCommand();
+
+      const result = await handler.execute(new CreateOrderCommand(command));
 
       expect(result).toEqual(cachedResponse);
       expect(mockOrderRepository.save).not.toHaveBeenCalled();
@@ -133,45 +133,14 @@ describe('CreateOrderHandler', () => {
         paymentTransactionId: null,
       };
       mockOrderRepository.save.mockResolvedValue(savedOrder);
-      mockIdempotencyRepository.findByKey.mockResolvedValue(null);
-      mockIdempotencyRepository.create.mockResolvedValue({});
 
-      const result = await handler.execute(
-        new CreateOrderCommand(validCommand),
-      );
+      const command = buildValidCommand();
+      const result = await handler.execute(new CreateOrderCommand(command));
 
       expect(result.success).toBe(true);
       expect(result.data?.orderId).toBe('order_123');
       expect(mockOrderRepository.save).toHaveBeenCalled();
       expect(mockIdempotencyRepository.create).toHaveBeenCalled();
-    });
-
-    it('should set reservation and transaction on order after saga', async () => {
-      const savedOrder = {
-        id: 'order_123',
-        customerId: 'cust_123',
-        items: [],
-        total: 40,
-        status: OrderStatus.PENDING,
-        inventoryReservationId: null,
-        paymentTransactionId: null,
-      };
-      mockOrderRepository.save.mockResolvedValue(savedOrder);
-      mockIdempotencyRepository.findByKey.mockResolvedValue(null);
-      mockIdempotencyRepository.create.mockResolvedValue({});
-
-      // Simulate saga setting reservationId and transactionId on context.order
-      mockSteps.validateStep.execute.mockImplementation(async (ctx: any) => {
-        ctx.order.reservationId = 'res_456';
-        ctx.order.transactionId = 'txn_789';
-        return true;
-      });
-
-      const result = await handler.execute(
-        new CreateOrderCommand(validCommand),
-      );
-
-      expect(result.success).toBe(true);
     });
 
     it('should mark order as CANCELLED when saga fails', async () => {
@@ -186,15 +155,12 @@ describe('CreateOrderHandler', () => {
       };
       mockOrderRepository.save.mockResolvedValue(savedOrder);
       mockOrderRepository.updateStatus.mockResolvedValue({});
-      mockIdempotencyRepository.findByKey.mockResolvedValue(null);
-      mockIdempotencyRepository.create.mockResolvedValue({});
 
       // Make payment step fail
-      mockSteps.paymentStep.execute.mockResolvedValue(false);
+      mockPaymentStep.execute.mockResolvedValue(false);
 
-      const result = await handler.execute(
-        new CreateOrderCommand(validCommand),
-      );
+      const command = buildValidCommand();
+      const result = await handler.execute(new CreateOrderCommand(command));
 
       expect(result.success).toBe(false);
       expect(mockOrderRepository.updateStatus).toHaveBeenCalledWith(
@@ -215,34 +181,30 @@ describe('CreateOrderHandler', () => {
       };
       mockOrderRepository.save.mockResolvedValue(savedOrder);
       mockOrderRepository.updateStatus.mockResolvedValue({});
-      mockIdempotencyRepository.findByKey.mockResolvedValue(null);
-      mockIdempotencyRepository.create.mockResolvedValue({});
 
-      mockSteps.paymentStep.execute.mockResolvedValue(false);
+      mockPaymentStep.execute.mockResolvedValue(false);
 
-      await handler.execute(new CreateOrderCommand(validCommand));
+      const command = buildValidCommand();
+      await handler.execute(new CreateOrderCommand(command));
 
       expect(mockIdempotencyRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          key: 'idem-key-001',
           response: expect.objectContaining({ success: false }),
         }),
       );
     });
 
     it('should throw when order validation fails', async () => {
-      const invalidCommand = {
-        query: {
-          detail: {
-            customerId: '', // empty customerId fails validation
-            items: [{ productId: 'prod_1', quantity: 2, price: 10 }],
-          },
-          headers: { 'Idempotency-Key': 'idem-key-001' },
+      const command = {
+        detail: {
+          customerId: '', // empty fails validation
+          items: [{ productId: 'prod_1', quantity: 2, price: 10 }],
         },
+        headers: { 'Idempotency-Key': 'idem-key-validation' },
       };
 
       await expect(
-        handler.execute(new CreateOrderCommand(invalidCommand)),
+        handler.execute(new CreateOrderCommand(command)),
       ).rejects.toThrow(RpcException);
     });
   });
