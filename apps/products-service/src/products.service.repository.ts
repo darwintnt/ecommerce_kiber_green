@@ -94,21 +94,20 @@ export class ProductRepository implements ProductRepositoryI {
   }
 
   async decrementStock(sku: string, quantity: number): Promise<void> {
-    // Atomic update to avoid race conditions
     const result = await this.prisma.product.updateMany({
       where: {
         sku,
-        // Only update if stock is sufficient
-        stock: { gte: quantity },
+        AND: [{ stock: { gte: quantity } }, { reserved: { gte: quantity } }],
       },
       data: {
         stock: { decrement: quantity },
+        reserved: { decrement: quantity },
       },
     });
 
     if (result.count === 0) {
       throw new Error(
-        `Product with SKU ${sku} not found or insufficient stock`,
+        `Product with SKU ${sku} not found or insufficient stock/reserved for confirmation`,
       );
     }
   }
