@@ -30,7 +30,7 @@ import {
         name: PRODUCT_CLIENT_PROXY,
         transport: Transport.NATS,
         options: {
-          servers: ['nats://localhost:4222'],
+          servers: [process.env['NATS_URL'] || 'nats://nats:4222'],
           queue: PRODUCT_QUEUE,
         },
       },
@@ -38,7 +38,7 @@ import {
         name: 'INVENTORY_EVENT_PUBLISHER',
         transport: Transport.NATS,
         options: {
-          servers: ['nats://localhost:4222'],
+          servers: [process.env['NATS_URL'] || 'nats://nats:4222'],
           queue: INVENTORY_QUEUE,
         },
       },

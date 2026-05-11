@@ -24,20 +24,6 @@ import {
   PAYMENT_QUEUE,
 } from 'libs/constants';
 
-// Commands
-export const CommandHandlers = [...OrdersCommandHandlers];
-
-// Queries
-export const QueryHandlers = [...OrdersQueryHandlers];
-
-// Saga Steps
-export const SagaSteps = [
-  InventoryValidateStep,
-  InventoryReserveStep,
-  PaymentProcessStep,
-  OrderConfirmStep,
-];
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -50,7 +36,7 @@ export const SagaSteps = [
         name: INVENTORY_CLIENT_PROXY,
         transport: Transport.NATS,
         options: {
-          servers: ['nats://localhost:4222'],
+          servers: [process.env['NATS_URL'] || 'nats://nats:4222'],
           queue: INVENTORY_QUEUE,
         },
       },
@@ -58,7 +44,7 @@ export const SagaSteps = [
         name: PAYMENT_CLIENT_PROXY,
         transport: Transport.NATS,
         options: {
-          servers: ['nats://localhost:4222'],
+          servers: [process.env['NATS_URL'] || 'nats://nats:4222'],
           queue: PAYMENT_QUEUE,
         },
       },

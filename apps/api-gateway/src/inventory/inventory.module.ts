@@ -10,7 +10,7 @@ import { INVENTORY_CLIENT_PROXY, INVENTORY_QUEUE } from 'libs/constants';
         name: INVENTORY_CLIENT_PROXY,
         transport: Transport.NATS,
         options: {
-          servers: ['nats://localhost:4222'],
+          servers: [process.env['NATS_URL'] || 'nats://nats:4222'],
           queue: INVENTORY_QUEUE,
         },
       },

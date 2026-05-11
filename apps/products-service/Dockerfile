@@ -10,8 +10,11 @@ FROM base AS development
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm install --frozen-lockfile
+RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 EXPOSE 3002
-CMD ["pnpm", "start:dev", "--filter=products-service"]
+CMD ["/entrypoint.sh"]
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
@@ -20,10 +23,13 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm build --filter=products-service
 
 FROM node:20-slim AS production
+RUN apk add --no-cache postgresql-client
 WORKDIR /app
 RUN groupadd -g 1001 nodejs && useradd -r -u 1001 -g nodejs nestjs
 COPY --from=builder /app/dist ./dist
 COPY --from=deps --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder /app/apps/products-service/prisma ./prisma
 USER nestjs
 EXPOSE 3002
+RUN npx prisma migrate deploy --schema=apps/products-service/prisma/schema.prisma
 CMD ["node", "dist/apps/products-service/main.js"]

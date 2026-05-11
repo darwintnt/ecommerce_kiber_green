@@ -10,8 +10,10 @@ FROM base AS development
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm install --frozen-lockfile
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 EXPOSE 3003
-CMD ["pnpm", "start:dev", "--filter=inventory-service"]
+CMD ["/entrypoint.sh"]
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
@@ -20,10 +22,13 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm build --filter=inventory-service
 
 FROM node:20-slim AS production
+RUN apk add --no-cache postgresql-client
 WORKDIR /app
 RUN groupadd -g 1001 nodejs && useradd -r -u 1001 -g nodejs nestjs
 COPY --from=builder /app/dist ./dist
 COPY --from=deps --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder /app/apps/inventory-service/prisma ./prisma
 USER nestjs
 EXPOSE 3003
+RUN npx prisma migrate deploy --schema=apps/inventory-service/prisma/schema.prisma
 CMD ["node", "dist/apps/inventory-service/main.js"]

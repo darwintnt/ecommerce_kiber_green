@@ -10,7 +10,7 @@ import { PRODUCT_CLIENT_PROXY, PRODUCT_QUEUE } from 'libs/constants';
         name: PRODUCT_CLIENT_PROXY,
         transport: Transport.NATS,
         options: {
-          servers: ['nats://localhost:4222'],
+          servers: [process.env['NATS_URL'] || 'nats://nats:4222'],
           queue: PRODUCT_QUEUE,
         },
       },

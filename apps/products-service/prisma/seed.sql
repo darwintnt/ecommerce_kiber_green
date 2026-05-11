@@ -1,8 +1,7 @@
 -- seed.sql: 30 productos para tabla "products"
 
-INSERT INTO products (id, sku, name, price, stock, reserved, "createdAt", "updatedAt") 
-SELECT * FROM (
-VALUES
+INSERT INTO products (id, sku, name, price, stock, reserved, "createdAt", "updatedAt")
+SELECT * FROM (VALUES
   (gen_random_uuid(), 'SKU-001', 'Laptop Pro 15" Intel Core i7', 1299.99, 50, 5, NOW(), NOW()),
   (gen_random_uuid(), 'SKU-002', 'Monitor UltraWide 34" 4K', 549.00, 30, 2, NOW(), NOW()),
   (gen_random_uuid(), 'SKU-003', 'Teclado Mecánico RGB TKL', 89.99, 120, 10, NOW(), NOW()),
@@ -32,6 +31,6 @@ VALUES
   (gen_random_uuid(), 'SKU-027', 'Cooler CPU 240mm AIO Líquido', 109.00, 38, 4, NOW(), NOW()),
   (gen_random_uuid(), 'SKU-028', 'NVMe SSD 2TB PCIe 4.0', 159.00, 42, 6, NOW(), NOW()),
   (gen_random_uuid(), 'SKU-029', 'Alfombrilla XL para Escritorio', 24.99, 220, 16, NOW(), NOW()),
-  (gen_random_uuid(), 'SKU-030', 'Luz LED de Escritorio USB Regulable', 19.95, 175, 9, NOW(), NOW()
-  ) AS seed_data
+  (gen_random_uuid(), 'SKU-030', 'Luz LED de Escritorio USB Regulable', 19.95, 175, 9, NOW(), NOW())
+) AS seed_data (id, sku, name, price, stock, reserved, createdat, updatedat)
 WHERE NOT EXISTS (SELECT 1 FROM products LIMIT 1);

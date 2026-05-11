@@ -36,10 +36,11 @@ services:
       retries: 5
 
   api-gateway:
-    image: node:20-alpine
+    build:
+      context: .
+      dockerfile: apps/api-gateway/Dockerfile
+      target: development
     container_name: api-gateway
-    working_dir: /app
-    command: sh -c "npm install -g pnpm@9 && pnpm install && pnpm start:dev"
     ports:
       - "3000:3000"
     depends_on:
@@ -50,12 +51,14 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
+      - APP_NAME=api-gateway
       - NATS_URL=nats://nats:4222
       - POSTGRES_HOST=postgres_db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=ecommerce_pass
       - POSTGRES_DB=ecommerce_dev
+      - DATABASE_URL=postgresql://admin:ecommerce_pass@postgres_db:5432/ecommerce_dev?schema=public
     networks:
       - microservices_net
     volumes:
@@ -64,10 +67,11 @@ services:
     restart: unless-stopped
 
   orders-service:
-    image: node:20-alpine
+    build:
+      context: .
+      dockerfile: apps/orders-service/Dockerfile
+      target: development
     container_name: orders-service
-    working_dir: /app
-    command: sh -c "npm install -g pnpm@9 && pnpm install && pnpm start:dev --filter=orders-service"
     ports:
       - "3001:3001"
     depends_on:
@@ -78,12 +82,14 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3001
+      - APP_NAME=orders-service
       - NATS_URL=nats://nats:4222
       - POSTGRES_HOST=postgres_db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=ecommerce_pass
-      - POSTGRES_DB=ecommerce_dev
+      - POSTGRES_DB=orders_db
+      - DATABASE_URL=postgresql://admin:ecommerce_pass@postgres_db:5432/orders_db?schema=public
     networks:
       - microservices_net
     volumes:
@@ -92,10 +98,11 @@ services:
     restart: unless-stopped
 
   products-service:
-    image: node:20-alpine
+    build:
+      context: .
+      dockerfile: apps/products-service/Dockerfile
+      target: development
     container_name: products-service
-    working_dir: /app
-    command: sh -c "npm install -g pnpm@9 && pnpm install && pnpm start:dev --filter=products-service"
     ports:
       - "3002:3002"
     depends_on:
@@ -106,12 +113,14 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3002
+      - APP_NAME=products-service
       - NATS_URL=nats://nats:4222
       - POSTGRES_HOST=postgres_db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=ecommerce_pass
-      - POSTGRES_DB=ecommerce_dev
+      - POSTGRES_DB=products_db
+      - DATABASE_URL=postgresql://admin:ecommerce_pass@postgres_db:5432/products_db?schema=public
     networks:
       - microservices_net
     volumes:
@@ -120,10 +129,11 @@ services:
     restart: unless-stopped
 
   inventory-service:
-    image: node:20-alpine
+    build:
+      context: .
+      dockerfile: apps/inventory-service/Dockerfile
+      target: development
     container_name: inventory-service
-    working_dir: /app
-    command: sh -c "npm install -g pnpm@9 && pnpm install && pnpm start:dev --filter=inventory-service"
     ports:
       - "3003:3003"
     depends_on:
@@ -134,12 +144,14 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3003
+      - APP_NAME=inventory-service
       - NATS_URL=nats://nats:4222
       - POSTGRES_HOST=postgres_db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=ecommerce_pass
-      - POSTGRES_DB=ecommerce_dev
+      - POSTGRES_DB=inventory_db
+      - DATABASE_URL=postgresql://admin:ecommerce_pass@postgres_db:5432/inventory_db?schema=public
     networks:
       - microservices_net
     volumes:
@@ -148,10 +160,11 @@ services:
     restart: unless-stopped
 
   payments-service:
-    image: node:20-alpine
+    build:
+      context: .
+      dockerfile: apps/payments-service/Dockerfile
+      target: development
     container_name: payments-service
-    working_dir: /app
-    command: sh -c "npm install -g pnpm@9 && pnpm install && pnpm start:dev --filter=payments-service"
     ports:
       - "3004:3004"
     depends_on:
@@ -162,12 +175,14 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3004
+      - APP_NAME=payments-service
       - NATS_URL=nats://nats:4222
       - POSTGRES_HOST=postgres_db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=ecommerce_pass
-      - POSTGRES_DB=ecommerce_dev
+      - POSTGRES_DB=payments_db
+      - DATABASE_URL=postgresql://admin:ecommerce_pass@postgres_db:5432/payments_db?schema=public
     networks:
       - microservices_net
     volumes:
