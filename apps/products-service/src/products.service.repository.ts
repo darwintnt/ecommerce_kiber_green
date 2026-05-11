@@ -17,7 +17,9 @@ export class ProductRepository implements ProductRepositoryI {
     search: string = '',
     conditions?: Record<string, any>,
   ): Promise<PaginatedResult<Product>> {
-    const skip = (page - 1) * limit;
+    const MAX_LIMIT = 100;
+    const safeLimit = Math.min(Math.max(1, limit), MAX_LIMIT);
+    const skip = (page - 1) * safeLimit;
 
     const where = {
       ...conditions,
@@ -34,7 +36,7 @@ export class ProductRepository implements ProductRepositoryI {
       this.prisma.product.findMany({
         where,
         skip,
-        take: limit,
+        take: safeLimit,
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.product.count({ where }),
@@ -44,9 +46,9 @@ export class ProductRepository implements ProductRepositoryI {
       data: data,
       meta: {
         page,
-        limit,
+        limit: safeLimit,
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / safeLimit),
       },
     };
   }
