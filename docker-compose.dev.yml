@@ -36,11 +36,10 @@ services:
       retries: 5
 
   api-gateway:
-    build:
-      context: .
-      dockerfile: apps/api-gateway/Dockerfile
-      target: development
+    image: node:20-alpine
     container_name: api-gateway
+    working_dir: /app
+    command: sh -c "npm install -g pnpm@9 && pnpm install && pnpm start:dev"
     ports:
       - "3000:3000"
     depends_on:
@@ -59,14 +58,16 @@ services:
       - POSTGRES_DB=ecommerce_dev
     networks:
       - microservices_net
+    volumes:
+      - .:/app
+      - /app/node_modules
     restart: unless-stopped
 
   orders-service:
-    build:
-      context: .
-      dockerfile: apps/orders-service/Dockerfile
-      target: development
+    image: node:20-alpine
     container_name: orders-service
+    working_dir: /app
+    command: sh -c "npm install -g pnpm@9 && pnpm install && pnpm start:dev --filter=orders-service"
     ports:
       - "3001:3001"
     depends_on:
@@ -85,14 +86,16 @@ services:
       - POSTGRES_DB=ecommerce_dev
     networks:
       - microservices_net
+    volumes:
+      - .:/app
+      - /app/node_modules
     restart: unless-stopped
 
   products-service:
-    build:
-      context: .
-      dockerfile: apps/products-service/Dockerfile
-      target: development
+    image: node:20-alpine
     container_name: products-service
+    working_dir: /app
+    command: sh -c "npm install -g pnpm@9 && pnpm install && pnpm start:dev --filter=products-service"
     ports:
       - "3002:3002"
     depends_on:
@@ -111,14 +114,16 @@ services:
       - POSTGRES_DB=ecommerce_dev
     networks:
       - microservices_net
+    volumes:
+      - .:/app
+      - /app/node_modules
     restart: unless-stopped
 
   inventory-service:
-    build:
-      context: .
-      dockerfile: apps/inventory-service/Dockerfile
-      target: development
+    image: node:20-alpine
     container_name: inventory-service
+    working_dir: /app
+    command: sh -c "npm install -g pnpm@9 && pnpm install && pnpm start:dev --filter=inventory-service"
     ports:
       - "3003:3003"
     depends_on:
@@ -137,14 +142,16 @@ services:
       - POSTGRES_DB=ecommerce_dev
     networks:
       - microservices_net
+    volumes:
+      - .:/app
+      - /app/node_modules
     restart: unless-stopped
 
   payments-service:
-    build:
-      context: .
-      dockerfile: apps/payments-service/Dockerfile
-      target: development
+    image: node:20-alpine
     container_name: payments-service
+    working_dir: /app
+    command: sh -c "npm install -g pnpm@9 && pnpm install && pnpm start:dev --filter=payments-service"
     ports:
       - "3004:3004"
     depends_on:
@@ -163,6 +170,9 @@ services:
       - POSTGRES_DB=ecommerce_dev
     networks:
       - microservices_net
+    volumes:
+      - .:/app
+      - /app/node_modules
     restart: unless-stopped
 
 networks:

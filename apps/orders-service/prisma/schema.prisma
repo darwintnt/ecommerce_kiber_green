@@ -31,3 +31,14 @@ model Order {
   @@index([status])
   @@map("orders")
 }
+
+model IdempotencyKey {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  response  Json
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([key])
+  @@map("idempotency_key")
+}

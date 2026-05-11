@@ -5,10 +5,14 @@ import { InventoryValidateStep } from '../../saga/steps/inventory-validate.step'
 import { InventoryReserveStep } from '../../saga/steps/inventory-reserve.step';
 import { PaymentProcessStep } from '../../saga/steps/payment-process.step';
 import { OrderConfirmStep } from '../../saga/steps/order-confirm.step';
-import { CreateOrder, OrderItem } from '../../domain/order-item';
+import { OrderItem } from '../../domain/order-item';
 import { SagaOrchestrator } from '../../saga/saga-orchestrator';
 import { Inject, Logger } from '@nestjs/common';
 import { ORDER_REPOSITORY } from '../../interfaces/orders-repository.interface';
+import {
+  IDEMPOTENCY_REPOSITORY,
+  type IdempotencyRepositoryI,
+} from '../../interfaces/idempotency-repository.interface';
 import { Order } from '../../domain/order.entity';
 import { OrderStatus } from '../../domain/order-status';
 import { RpcException } from '@nestjs/microservices';
@@ -20,6 +24,8 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
   constructor(
     @Inject(ORDER_REPOSITORY)
     private readonly orderRepository: OrderRepository,
+    @Inject(IDEMPOTENCY_REPOSITORY)
+    private readonly idempotencyRepository: IdempotencyRepositoryI,
     private readonly inventoryValidateStep: InventoryValidateStep,
     private readonly inventoryReserveStep: InventoryReserveStep,
     private readonly paymentProcessStep: PaymentProcessStep,
@@ -27,6 +33,24 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
   ) {}
 
   async execute(command: CreateOrderCommand) {
+    const idempotencyKey = command.query.headers?.['Idempotency-Key'];
+
+    if (!idempotencyKey) {
+      throw new RpcException('Idempotency-Key header is required');
+    }
+
+    // Check for existing key
+    const existingKey =
+      await this.idempotencyRepository.findByKey(idempotencyKey);
+    if (existingKey && !this.idempotencyRepository.isExpired(existingKey)) {
+      this.logger.log(`Returning cached response for key: ${idempotencyKey}`);
+      return existingKey.response as {
+        success: boolean;
+        data?: { orderId: string };
+        error?: string;
+      };
+    }
+
     const order = new Order({
       customerId: command.query.detail.customerId as string,
       items: [],
@@ -44,12 +68,6 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
     }
 
     const savedOrder = await this.orderRepository.save(order);
-
-    const idempotencyKey = command.query.headers?.['Idempotency-Key'];
-
-    if (!idempotencyKey) {
-      this.logger.warn('No Idempotency-Key provided in headers');
-    }
 
     const context: {
       order: any;
@@ -90,7 +108,16 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
         );
       }
 
-      return { success: true, data: { orderId: savedOrder.id } };
+      const response = { success: true, data: { orderId: savedOrder.id } };
+
+      // Store success response
+      await this.idempotencyRepository.create({
+        key: idempotencyKey,
+        response,
+        expiresInHours: 24,
+      });
+
+      return response;
     } catch (error) {
       this.logger.error(
         'Order creation failed, initiating compensation',
@@ -124,7 +151,16 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
         errorMessage = context.errorMessage;
       }
 
-      return { success: false, error: errorMessage };
+      const response = { success: false, error: errorMessage };
+
+      // Store failure response for idempotency
+      await this.idempotencyRepository.create({
+        key: idempotencyKey,
+        response,
+        expiresInHours: 24,
+      });
+
+      return response;
     }
   }
 }

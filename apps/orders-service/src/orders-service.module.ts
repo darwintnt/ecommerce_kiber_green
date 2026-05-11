@@ -5,7 +5,9 @@ import { ConfigModule } from '@nestjs/config';
 import { configuration } from './config/envs';
 import { PrismaService } from './prisma.service';
 import { OrderRepository } from './orders-service.repository';
+import { IdempotencyRepository } from './idempotency.repository';
 import { ORDER_REPOSITORY } from './interfaces/orders-repository.interface';
+import { IDEMPOTENCY_REPOSITORY } from './interfaces/idempotency-repository.interface';
 import { ORDER_SERVICE } from './interfaces/orders-service.interface';
 import { CqrsModule } from '@nestjs/cqrs';
 import { OrdersQueryHandlers } from './queries';
@@ -75,6 +77,10 @@ export const SagaSteps = [
     {
       provide: 'DATABASE_SERVICE',
       useClass: PrismaService,
+    },
+    {
+      provide: IDEMPOTENCY_REPOSITORY,
+      useClass: IdempotencyRepository,
     },
     ...CommandHandlers,
     ...QueryHandlers,
