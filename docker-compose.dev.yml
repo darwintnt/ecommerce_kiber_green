@@ -9,7 +9,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+      - ./init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
     networks:
       - microservices_net
     healthcheck:
@@ -20,175 +20,24 @@ services:
 
   nats:
     image: nats:2.12-alpine
+    container_name: nats
     ports:
-      - "4222:4222"
-      - "8222:8222"
-    command: ["-js", "-m", "8222"]
+      - "4222:4222" # client connections
+      - "8222:8222" # HTTP monitoring
+      - "6222:6222" # cluster routing (opcional)
+    command: >
+      -js -m 8222 -n nats-server
     volumes:
       - nats_data:/data
     networks:
       - microservices_net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "nats-server", "-v"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  api-gateway:
-    build:
-      context: .
-      dockerfile: apps/api-gateway/Dockerfile
-      target: development
-    container_name: api-gateway
-    ports:
-      - "3000:3000"
-    depends_on:
-      postgres_db:
-        condition: service_healthy
-      nats:
-        condition: service_healthy
-    environment:
-      - NODE_ENV=development
-      - PORT=3000
-      - APP_NAME=api-gateway
-      - NATS_URL=nats://nats:4222
-      - POSTGRES_HOST=postgres_db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=ecommerce_pass
-      - POSTGRES_DB=ecommerce_dev
-      - DATABASE_URL=postgresql://admin:ecommerce_pass@postgres_db:5432/ecommerce_dev?schema=public
-    networks:
-      - microservices_net
-    volumes:
-      - .:/app
-      - /app/node_modules
-    restart: unless-stopped
-
-  orders-service:
-    build:
-      context: .
-      dockerfile: apps/orders-service/Dockerfile
-      target: development
-    container_name: orders-service
-    ports:
-      - "3001:3001"
-    depends_on:
-      postgres_db:
-        condition: service_healthy
-      nats:
-        condition: service_healthy
-    environment:
-      - NODE_ENV=development
-      - PORT=3001
-      - APP_NAME=orders-service
-      - NATS_URL=nats://nats:4222
-      - POSTGRES_HOST=postgres_db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=ecommerce_pass
-      - POSTGRES_DB=orders_db
-      - DATABASE_URL=postgresql://admin:ecommerce_pass@postgres_db:5432/orders_db?schema=public
-    networks:
-      - microservices_net
-    volumes:
-      - .:/app
-      - /app/node_modules
-    restart: unless-stopped
-
-  products-service:
-    build:
-      context: .
-      dockerfile: apps/products-service/Dockerfile
-      target: development
-    container_name: products-service
-    ports:
-      - "3002:3002"
-    depends_on:
-      postgres_db:
-        condition: service_healthy
-      nats:
-        condition: service_healthy
-    environment:
-      - NODE_ENV=development
-      - PORT=3002
-      - APP_NAME=products-service
-      - NATS_URL=nats://nats:4222
-      - POSTGRES_HOST=postgres_db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=ecommerce_pass
-      - POSTGRES_DB=products_db
-      - DATABASE_URL=postgresql://admin:ecommerce_pass@postgres_db:5432/products_db?schema=public
-    networks:
-      - microservices_net
-    volumes:
-      - .:/app
-      - /app/node_modules
-    restart: unless-stopped
-
-  inventory-service:
-    build:
-      context: .
-      dockerfile: apps/inventory-service/Dockerfile
-      target: development
-    container_name: inventory-service
-    ports:
-      - "3003:3003"
-    depends_on:
-      postgres_db:
-        condition: service_healthy
-      nats:
-        condition: service_healthy
-    environment:
-      - NODE_ENV=development
-      - PORT=3003
-      - APP_NAME=inventory-service
-      - NATS_URL=nats://nats:4222
-      - POSTGRES_HOST=postgres_db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=ecommerce_pass
-      - POSTGRES_DB=inventory_db
-      - DATABASE_URL=postgresql://admin:ecommerce_pass@postgres_db:5432/inventory_db?schema=public
-    networks:
-      - microservices_net
-    volumes:
-      - .:/app
-      - /app/node_modules
-    restart: unless-stopped
-
-  payments-service:
-    build:
-      context: .
-      dockerfile: apps/payments-service/Dockerfile
-      target: development
-    container_name: payments-service
-    ports:
-      - "3004:3004"
-    depends_on:
-      postgres_db:
-        condition: service_healthy
-      nats:
-        condition: service_healthy
-    environment:
-      - NODE_ENV=development
-      - PORT=3004
-      - APP_NAME=payments-service
-      - NATS_URL=nats://nats:4222
-      - POSTGRES_HOST=postgres_db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=ecommerce_pass
-      - POSTGRES_DB=payments_db
-      - DATABASE_URL=postgresql://admin:ecommerce_pass@postgres_db:5432/payments_db?schema=public
-    networks:
-      - microservices_net
-    volumes:
-      - .:/app
-      - /app/node_modules
-    restart: unless-stopped
+      test:
+        ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/4222 && echo ok || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 networks:
   microservices_net:

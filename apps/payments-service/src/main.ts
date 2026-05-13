@@ -11,7 +11,7 @@ async function bootstrap() {
     {
       transport: Transport.NATS,
       options: {
-        servers: [process.env['NATS_URL'] || 'nats://nats:4222'],
+        servers: [process.env['NATS_URL'] || 'nats://localhost:4222'],
         queue: PAYMENT_QUEUE,
       },
     },

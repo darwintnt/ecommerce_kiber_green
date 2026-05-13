@@ -10,7 +10,7 @@ import { ORDER_CLIENT_PROXY, ORDER_QUEUE } from 'libs/constants';
         name: ORDER_CLIENT_PROXY,
         transport: Transport.NATS,
         options: {
-          servers: [process.env['NATS_URL'] || 'nats://nats:4222'],
+          servers: [process.env['NATS_URL'] || 'nats://localhost:4222'],
           queue: ORDER_QUEUE,
         },
       },
