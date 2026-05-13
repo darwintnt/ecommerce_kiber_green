@@ -71,6 +71,14 @@ api-gateway/
 # Levanta todos los servicios con hot-reload
 docker compose -f docker-compose.dev.yml down && docker compose -f docker-compose.dev.yml up --build
 
+pnpm start:dev // Api-gateway
+pnpm run start:dev orders-service
+pnpm run start:dev payments-service
+pnpm run start:dev inventory-service
+pnpm run start:dev products-service
+
+# Luego se debe ingresar a cada microservicio y ejecutar el comando npx prisma migrate --name init excepto para inventory-service
+
 # Ver logs en tiempo real
 docker compose -f docker-compose.dev.yml up -d
 docker compose -f docker-compose.dev.yml logs -f
