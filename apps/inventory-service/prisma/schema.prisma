@@ -24,5 +24,4 @@ model InventoryReservation {
 
   @@index([orderId])
   @@index([status])
-  @@map("inventory_reservation")
 }
