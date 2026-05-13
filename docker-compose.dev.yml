@@ -33,11 +33,10 @@ services:
       - microservices_net
     restart: unless-stopped
     healthcheck:
-      test:
-        ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/4222 && echo ok || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      test: ["CMD", "nats-server", "-v"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   microservices_net:

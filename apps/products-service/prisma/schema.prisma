@@ -26,3 +26,21 @@ model Product {
   @@index([sku])
   @@map("products")
 }
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  RELEASED
+}
+
+model InventoryReservation {
+  id        String            @id @default(uuid())
+  orderId   String            @unique
+  status    ReservationStatus @default(PENDING)
+  items     Json
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+}
